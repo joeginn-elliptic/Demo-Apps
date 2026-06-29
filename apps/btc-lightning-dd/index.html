@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bitcoin Lightning Screening Capabilities — Elliptic</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: #080c14;
+    color: #e2e8f0;
+    font-family: 'DM Sans', sans-serif;
+  }
+  button { font-family: inherit; }
+  .bg-grid {
+    position: fixed; inset: 0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(148,163,184,0.03) 1px, transparent 0);
+    background-size: 32px 32px;
+    pointer-events: none; z-index: 0;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 40px 24px; position: relative; z-index: 1; }
+
+  .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #f59e0b; font-weight: 600; }
+  .gradient-title {
+    font-family: 'DM Sans', sans-serif; font-weight: 700; line-height: 1.2; margin: 0;
+    background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Tab bar */
+  .tabbar { display: flex; margin-bottom: 40px; border-bottom: 1px solid #1e293b; }
+  .tab {
+    font-size: 14px; padding: 12px 22px; background: transparent; border: none;
+    border-bottom: 2px solid transparent; color: #64748b; cursor: pointer;
+    transition: all 0.2s; margin-bottom: -1px; white-space: nowrap; font-weight: 400;
+  }
+  .tab.active { color: #f1f5f9; font-weight: 600; border-bottom-color: #f59e0b; }
+
+  .hidden { display: none !important; }
+
+  /* Generic cards */
+  .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 14px; }
+  .panel-grad { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #1e293b; }
+
+  /* Phase / step buttons */
+  .chip {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.8px;
+    padding: 8px 14px; border-radius: 8px; border: 1px solid #1e293b; background: #0f172a;
+    color: #64748b; cursor: pointer; transition: all 0.3s; white-space: nowrap;
+  }
+  .chip.active { border: 1.5px solid #f59e0b; background: rgba(245,158,11,0.1); color: #f59e0b; }
+
+  .toggle-btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    color: #64748b; background: rgba(100,116,139,0.1); border: 1px solid rgba(100,116,139,0.2);
+    border-radius: 8px; padding: 8px 14px; cursor: pointer; transition: all 0.3s;
+  }
+  .toggle-btn.on { color: #f59e0b; background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); }
+
+  .insight-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .stat-grid { display: grid; gap: 12px; }
+
+  .divider-row { display: flex; align-items: center; gap: 16px; }
+  .divider-row .line-l { height: 1px; flex: 1; background: linear-gradient(90deg, transparent, #1e293b 50%); }
+  .divider-row .line-r { height: 1px; flex: 1; background: linear-gradient(90deg, #1e293b 50%, transparent); }
+  .divider-pill {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 2.5px; color: #475569;
+    text-transform: uppercase; white-space: nowrap; padding: 6px 16px; border: 1px solid #1e293b; border-radius: 20px;
+  }
+
+  /* Step cards (screening flow) */
+  .stepcard {
+    background: #0f172a; border: 1.5px solid #1e293b; border-radius: 14px; padding: 18px 16px 14px;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    min-width: 120px; max-width: 140px; transition: all 0.3s ease; position: relative; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .stepcard.active {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-color: #f59e0b;
+    box-shadow: 0 0 24px rgba(245,158,11,0.15), 0 4px 12px rgba(0,0,0,0.3); transform: translateY(-2px);
+  }
+  .stepcard .topbar { position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, #f59e0b, transparent); display: none; }
+  .stepcard.active .topbar { display: block; }
+  .stepcard .ic { color: #64748b; transition: color 0.3s; }
+  .stepcard.active .ic { color: #f59e0b; }
+  .stepcard .lbl { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #475569; font-weight: 600; }
+  .stepcard.active .lbl { color: #f59e0b; }
+  .stepcard .ttl { font-size: 12px; color: #94a3b8; text-align: center; line-height: 1.3; font-weight: 500; }
+  .stepcard.active .ttl { color: #e2e8f0; }
+
+  .cta-btn {
+    margin-top: 16px; width: 100%; padding: 11px 20px; background: rgba(245,158,11,0.07);
+    border: 1.5px solid rgba(245,158,11,0.35); border-radius: 10px; color: #f59e0b;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s;
+  }
+  .cta-btn:hover { background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.65); }
+
+  /* Report shell */
+  .report-tab {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.5px;
+    padding: 8px 14px; border-radius: 8px 8px 0 0; border: none; cursor: pointer;
+    background: transparent; color: #64748b; border-bottom: 2px solid transparent;
+    font-weight: 400; transition: all 0.2s; margin-bottom: -1px;
+  }
+  .report-tab.active { background: #0a0f1a; color: #f59e0b; border-bottom-color: #f59e0b; font-weight: 600; }
+
+  .heat-row {
+    display: grid; grid-template-columns: 26px 130px 1fr 64px; gap: 10px; align-items: center;
+    background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 7px 10px;
+    cursor: pointer; text-align: left; transition: all 0.15s; width: 100%;
+  }
+  .heat-row.active { background: rgba(245,158,11,0.06); border-color: rgba(245,158,11,0.3); }
+
+  .detail-row-btn {
+    width: 100%; display: grid; grid-template-columns: 1fr 130px 70px 90px; gap: 8px;
+    align-items: center; padding: 11px 12px; background: transparent; border: none; cursor: pointer; text-align: left;
+  }
+  .detail-row-btn.open { background: rgba(245,158,11,0.04); }
+
+  em { font-style: italic; color: #cbd5e1; }
+
+  @media (max-width: 720px) {
+    .insight-grid { grid-template-columns: 1fr; }
+    .report-detail-cols { grid-template-columns: 1fr !important; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="wrap">
+
+  <!-- Page header -->
+  <div style="margin-bottom:36px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <div class="eyebrow">Elliptic</div>
+      <div style="height:1px;width:32px;background:linear-gradient(90deg,#f59e0b,transparent);"></div>
+    </div>
+    <h1 class="gradient-title" style="font-size:32px;margin-bottom:8px;">Bitcoin Lightning Screening Capabilities</h1>
+    <p style="font-size:15px;color:#64748b;margin:0;max-width:640px;line-height:1.6;">
+      Elliptic's approach to screening Lightning Network activity by anchoring risk signals to on-chain Bitcoin artifacts.
+    </p>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tabbar">
+    <button class="tab active" data-tab="0">Lightning Network Screening</button>
+    <button class="tab" data-tab="1">Node Due Diligence</button>
+  </div>
+
+  <!-- ============ TAB 1 ============ -->
+  <div id="tab-0">
+
+    <!-- Core principle -->
+    <div style="background:linear-gradient(135deg,rgba(245,158,11,0.06) 0%,rgba(245,158,11,0.02) 100%);border:1px solid rgba(245,158,11,0.15);border-radius:14px;padding:18px 24px;margin-bottom:36px;display:flex;gap:14px;align-items:flex-start;">
+      <div style="font-size:20px;margin-top:1px;">⚡</div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:#f59e0b;text-transform:uppercase;margin-bottom:4px;">Core Principle</div>
+        <div style="font-size:14px;color:#cbd5e1;line-height:1.6;">
+          Lightning payments happen off-chain, so you cannot screen them like regular BTC transactions. Instead, Elliptic resolves Lightning identifiers into their associated on-chain funding addresses, screens those addresses, and aggregates the exposure into a single result.
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:36px;">
+      <div class="card" style="padding:16px 20px;text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#f1f5f9;margin-bottom:4px;">3,800+</div><div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">LN Nodes Indexed</div></div>
+      <div class="card" style="padding:16px 20px;text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#f1f5f9;margin-bottom:4px;">54,000+</div><div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Linked BTC Addresses</div></div>
+      <div class="card" style="padding:16px 20px;text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#f1f5f9;margin-bottom:4px;">1–10</div><div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Addresses per Node (typical)</div></div>
+    </div>
+
+    <!-- Section title + autoplay -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h2 style="font-size:20px;font-weight:700;margin:0;color:#f1f5f9;">Screening Flow</h2>
+      <button id="flow-autoplay" class="toggle-btn">▶ Auto-play</button>
+    </div>
+
+    <!-- Step selector -->
+    <div id="step-selector" style="display:flex;align-items:center;justify-content:center;gap:4px;margin-bottom:24px;overflow-x:auto;padding:4px 0;"></div>
+
+    <!-- Detail + diagram -->
+    <div class="report-detail-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:40px;">
+      <div id="step-detail" class="panel-grad" style="border-radius:16px;padding:28px 32px;transition:all 0.4s ease;"></div>
+      <div id="step-diagram" style="background:#0a0f1a;border:1px solid #1e293b;border-radius:16px;padding:28px;position:relative;overflow:hidden;"></div>
+    </div>
+
+    <!-- Methodology deep-dive divider -->
+    <div style="margin-top:64px;margin-bottom:48px;">
+      <div class="divider-row">
+        <div class="line-l"></div>
+        <div class="divider-pill">Methodology Deep Dive</div>
+        <div class="line-r"></div>
+      </div>
+    </div>
+    <div id="funding-anchor"></div>
+
+    <!-- Funding wallet attribution -->
+    <div>
+      <div style="margin-bottom:28px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:#f59e0b;text-transform:uppercase;font-weight:600;">Methodology</div>
+          <div style="height:1px;flex:1;background:linear-gradient(90deg,rgba(245,158,11,0.2),transparent);"></div>
+        </div>
+        <h2 class="gradient-title" style="font-size:26px;margin-bottom:8px;">Funding Wallet Attribution</h2>
+        <p style="font-size:14px;color:#64748b;margin:0;max-width:580px;line-height:1.6;">
+          How repeated funding patterns across multiple channels reveal the on-chain wallets — and ultimately the entities — controlling Lightning nodes.
+        </p>
+      </div>
+
+      <!-- phase selector -->
+      <div id="phase-selector" style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;align-items:center;"></div>
+
+      <!-- info panel -->
+      <div class="panel-grad" style="border-radius:14px;padding:20px 26px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+          <div id="phase-num" style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:#f59e0b;text-transform:uppercase;"></div>
+          <div id="phase-subtitle" style="font-size:18px;font-weight:700;color:#f1f5f9;"></div>
+        </div>
+        <p id="phase-desc" style="font-size:14px;color:#94a3b8;margin:0;line-height:1.7;"></p>
+      </div>
+
+      <!-- SVG diagram -->
+      <div style="background:#0a0f1a;border:1px solid #1e293b;border-radius:16px;overflow:hidden;margin-bottom:32px;">
+        <svg id="fw-svg" viewBox="0 0 900 520" width="100%" style="display:block;"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TAB 2 ============ -->
+  <div id="tab-1" class="hidden">
+    <!-- header -->
+    <div style="margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:#f59e0b;text-transform:uppercase;font-weight:600;">Block × Elliptic · 27 May 2026</div>
+        <div style="height:1px;flex:1;background:linear-gradient(90deg,rgba(245,158,11,0.2),transparent);"></div>
+      </div>
+      <h2 class="gradient-title" style="font-size:26px;margin-bottom:8px;">Partner Node Due Diligence</h2>
+      <p style="font-size:14px;color:#64748b;margin:0;max-width:620px;line-height:1.6;">
+        From a single compliance question to a repeatable, capacity-weighted risk view of every routing partner — built on the on-chain anchoring method, applied to a whole neighborhood.
+      </p>
+    </div>
+
+    <!-- journey -->
+    <div id="journey" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;"></div>
+
+    <!-- pipeline -->
+    <div style="background:#0a0f1a;border:1px solid #1e293b;border-radius:14px;padding:18px 16px;margin-bottom:36px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:#475569;text-transform:uppercase;margin-bottom:14px;text-align:center;">How we got there — the screening pipeline</div>
+      <div id="pipeline" style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;"></div>
+    </div>
+
+    <!-- run stats -->
+    <div id="dd-stats" class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px;"></div>
+
+    <!-- deliverable divider -->
+    <div style="display:flex;align-items:center;gap:16px;margin:40px 0 20px;">
+      <div class="line-l" style="height:1px;flex:1;background:linear-gradient(90deg,transparent,#1e293b 50%);"></div>
+      <div class="divider-pill">The Deliverable — Live</div>
+      <div class="line-r" style="height:1px;flex:1;background:linear-gradient(90deg,#1e293b 50%,transparent);"></div>
+    </div>
+
+    <!-- report shell -->
+    <div style="background:#0a0f1a;border:1px solid #1e293b;border-radius:16px;overflow:hidden;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid #1e293b;background:#0f172a;">
+        <div style="display:flex;gap:6px;">
+          <div style="width:11px;height:11px;border-radius:50%;background:#ef4444;opacity:0.7;"></div>
+          <div style="width:11px;height:11px;border-radius:50%;background:#f59e0b;opacity:0.7;"></div>
+          <div style="width:11px;height:11px;border-radius:50%;background:#22c55e;opacity:0.7;"></div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;margin-left:6px;">Block_LN_Partner_DD_27May2026.xlsx</div>
+      </div>
+      <div id="report-tabs" style="display:flex;gap:2px;padding:10px 12px 0;border-bottom:1px solid #1e293b;flex-wrap:wrap;"></div>
+      <div id="report-body" style="padding:20px;"></div>
+    </div>
+
+    <!-- disclaimer -->
+    <div style="display:flex;gap:12px;align-items:flex-start;background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.15);border-radius:12px;padding:14px 18px;margin-bottom:32px;">
+      <div style="font-size:16px;margin-top:1px;">⚠️</div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#fca5a5;text-transform:uppercase;margin-bottom:4px;">Standing disclaimer</div>
+        <div style="font-size:12px;color:#94a3b8;line-height:1.6;">
+          Channel adjacency does not imply payment counterparty exposure. One-hop screening is a network risk / hygiene control, not a definitive view of transactional flow — a node may route through a channel partner without that partner being the source or destination.
+        </div>
+      </div>
+    </div>
+
+    <!-- why it helps -->
+    <div class="insight-grid" style="margin-bottom:8px;">
+      <div class="card" style="padding:20px 18px;"><div style="font-size:22px;margin-bottom:10px;">♻️</div><div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">Repeatable &amp; Rule-Aligned</div><div style="font-size:12px;line-height:1.6;color:#94a3b8;">Built on Block's own Lens rules in an isolated environment. Re-run it on any cadence — the same defensible methodology every time.</div></div>
+      <div class="card" style="padding:20px 18px;"><div style="font-size:22px;margin-bottom:10px;">⚖️</div><div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">Capacity-Weighted Focus</div><div style="font-size:12px;line-height:1.6;color:#94a3b8;">Surfaces the exposures that carry real sats first, so analysts spend minutes on what matters instead of hours on noise.</div></div>
+      <div class="card" style="padding:20px 18px;"><div style="font-size:22px;margin-bottom:10px;">🛡️</div><div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">Regulator-Defensible</div><div style="font-size:12px;line-height:1.6;color:#94a3b8;">Every screen, score, and rule is logged and timestamped — a documented partner-onboarding control compliance can stand behind.</div></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="margin-top:40px;padding-top:20px;border-top:1px solid #1e293b;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:#334155;letter-spacing:1px;">
+    Elliptic — Bitcoin Lightning Screening Capabilities
+  </div>
+</div>
+
+<script>
+//──────────────────────────────────────────────────────────────────────────
+// Helpers
+//──────────────────────────────────────────────────────────────────────────
+const $ = (s, r=document) => r.querySelector(s);
+function el(tag, attrs={}, ...kids){
+  const n = document.createElementNS(attrs._ns || 'http://www.w3.org/1999/xhtml', tag);
+  for (const [k,v] of Object.entries(attrs)){
+    if (k==='_ns') continue;
+    if (k==='style' && typeof v==='object'){ Object.assign(n.style, v); }
+    else if (k==='html'){ n.innerHTML = v; }
+    else if (k.startsWith('on') && typeof v==='function'){ n.addEventListener(k.slice(2), v); }
+    else { n.setAttribute(k, v); }
+  }
+  for (const kid of kids){ if (kid==null) continue; n.appendChild(typeof kid==='string' ? document.createTextNode(kid) : kid); }
+  return n;
+}
+const SVGNS = 'http://www.w3.org/2000/svg';
+function svg(tag, attrs={}, ...kids){ return el(tag, {_ns:SVGNS, ...attrs}, ...kids); }
+
+//──────────────────────────────────────────────────────────────────────────
+// Tabs
+//──────────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    const i = t.dataset.tab;
+    $('#tab-0').classList.toggle('hidden', i!=='0');
+    $('#tab-1').classList.toggle('hidden', i!=='1');
+  });
+});
+
+//──────────────────────────────────────────────────────────────────────────
+// SCREENING FLOW
+//──────────────────────────────────────────────────────────────────────────
+const ICONS = {
+  invoice:'<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="6" y="3" width="20" height="26" rx="2" stroke="currentColor" stroke-width="2"/><line x1="10" y1="10" x2="22" y2="10" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="14" x2="22" y2="14" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="18" x2="18" y2="18" stroke="currentColor" stroke-width="1.5"/><circle cx="19" cy="23" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M19 21v2.5l1.5 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
+  node:'<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="5" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="6" r="2.5" stroke="currentColor" stroke-width="1.5"/><circle cx="26" cy="6" r="2.5" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="26" r="2.5" stroke="currentColor" stroke-width="1.5"/><circle cx="26" cy="26" r="2.5" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="8" x2="13" y2="13" stroke="currentColor" stroke-width="1.2"/><line x1="24" y1="8" x2="19" y2="13" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="24" x2="13" y2="19" stroke="currentColor" stroke-width="1.2"/><line x1="24" y1="24" x2="19" y2="19" stroke="currentColor" stroke-width="1.2"/></svg>',
+  link:'<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M13 19l-2 2a4 4 0 005.66 5.66l4-4a4 4 0 000-5.66" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 13l2-2a4 4 0 00-5.66-5.66l-4 4a4 4 0 000 5.66" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  screen:'<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="6" width="24" height="16" rx="2" stroke="currentColor" stroke-width="2"/><line x1="12" y1="26" x2="20" y2="26" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="22" x2="16" y2="26" stroke="currentColor" stroke-width="2"/><path d="M10 12l3 3 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  result:'<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="11" stroke="currentColor" stroke-width="2"/><path d="M11 16l3.5 3.5L21.5 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+const STEPS = [
+  {id:1,label:'Input',title:'Customer Submits Identifier',icon:'invoice',desc:'A Lightning invoice or node public key is submitted for screening via the Elliptic UI or API.'},
+  {id:2,label:'Resolve',title:'Node Attribution & Resolution',icon:'node',desc:'Elliptic attempts to identify and attribute the Lightning node behind the identifier.'},
+  {id:3,label:'Link',title:'Channel Funding Wallet Discovery',icon:'link',desc:'The node is linked to its on-chain Bitcoin funding addresses through public channel data.'},
+  {id:4,label:'Screen',title:'On-Chain BTC Screening',icon:'screen',desc:'Standard Bitcoin screening logic is applied to each discovered funding address.'},
+  {id:5,label:'Result',title:'Aggregated Risk Result',icon:'result',desc:'Exposure data is aggregated into a single, unified risk result for the Lightning identifier.'}
+];
+let activeStep = 1, flowAuto = false, flowTimer = null;
+
+function flowArrow(active){
+  return `<svg width="48" height="24" viewBox="0 0 48 24" fill="none" style="flex-shrink:0;">
+    <line x1="0" y1="12" x2="36" y2="12" stroke="${active?'#f59e0b':'#334155'}" stroke-width="2" stroke-dasharray="${active?'none':'4 4'}"/>
+    <path d="M34 6l8 6-8 6" fill="none" stroke="${active?'#f59e0b':'#334155'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    ${active?'<circle r="3" fill="#f59e0b" opacity="0.9"><animateMotion dur="1.2s" repeatCount="indefinite" path="M0,12 L36,12"/></circle>':''}
+  </svg>`;
+}
+function renderSteps(){
+  const c = $('#step-selector'); c.innerHTML='';
+  STEPS.forEach((s,i)=>{
+    const wrap = el('div',{style:{display:'flex',alignItems:'center'}});
+    const btn = el('button',{class:'stepcard'+(activeStep===s.id?' active':''),onclick:()=>{activeStep=s.id;setFlowAuto(false);renderSteps();renderStepDetail();renderStepDiagram();}});
+    btn.innerHTML = `<div class="topbar"></div><div class="ic">${ICONS[s.icon]}</div><span class="lbl">${s.label}</span><span class="ttl">${s.title}</span>`;
+    wrap.appendChild(btn);
+    if(i<STEPS.length-1){ const a=el('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',width:'48px',flexShrink:'0'},html:flowArrow(activeStep>s.id)}); wrap.appendChild(a); }
+    c.appendChild(wrap);
+  });
+}
+function renderStepDetail(){
+  const s = STEPS[activeStep-1];
+  const showCTA = s.id===3;
+  $('#step-detail').innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+      <div style="width:44px;height:44px;border-radius:12px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;color:#f59e0b;">${ICONS[s.icon]}</div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:#f59e0b;text-transform:uppercase;margin-bottom:2px;">Step ${s.id} — ${s.label}</div>
+        <div style="font-size:18px;font-weight:700;color:#f1f5f9;">${s.title}</div>
+      </div>
+    </div>
+    <p style="font-size:15px;line-height:1.7;color:#cbd5e1;margin:0;">${s.desc}</p>
+    ${showCTA?`<button class="cta-btn" id="funding-cta"><span style="font-size:14px;">↓</span><span>How Funding Wallet Attribution Works</span><span style="font-size:14px;">→</span></button>`:''}`;
+  // fade
+  const d = $('#step-detail'); d.style.opacity=0; d.style.transform='translateY(8px)';
+  requestAnimationFrame(()=>{ d.style.opacity=1; d.style.transform='translateY(0)'; });
+  if(showCTA){ $('#funding-cta').addEventListener('click', ()=>{ $('#funding-anchor').scrollIntoView({behavior:'smooth',block:'start'}); }); }
+}
+function arrowDown(active){
+  return `<div style="display:flex;justify-content:center;height:36px;"><svg width="24" height="36" viewBox="0 0 24 36" fill="none">
+    <line x1="12" y1="0" x2="12" y2="28" stroke="${active?'#f59e0b':'#334155'}" stroke-width="2" stroke-dasharray="${active?'none':'4 4'}"/>
+    <path d="M6 24l6 8 6-8" fill="none" stroke="${active?'#f59e0b':'#334155'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    ${active?'<circle r="3" fill="#f59e0b" opacity="0.9"><animateMotion dur="1s" repeatCount="indefinite" path="M12,0 L12,28"/></circle>':''}
+  </svg></div>`;
+}
+function renderStepDiagram(){
+  const s = activeStep;
+  const bolts = Array.from({length:6}).map((_,i)=>`<svg width="14" height="20" viewBox="0 0 14 20" fill="none" style="position:absolute;top:${15+i*15}%;left:${5+i*18}%;transform:rotate(${i*30}deg);opacity:0.08;"><path d="M8 0L0 11h6l-2 9 8-12H6L8 0z" fill="currentColor"/></svg>`).join('');
+  const addrs = [1,2,3,4,5].map(i=>`<div style="width:56px;height:34px;background:${s>=3?`rgba(249,115,22,${0.06+i*0.03})`:'rgba(249,115,22,0.02)'};border:1px solid ${s>=4?'rgba(249,115,22,0.4)':'rgba(249,115,22,0.1)'};border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:8px;color:${s>=3?'#fb923c':'#431407'};transition:all 0.4s;transition-delay:${i*80}ms;">${s>=3?'addr_'+i:'···'}</div>`).join('');
+  const resolveMsg = s===1?'Awaiting input...':s===2?'Attempting node attribution & entity matching...':s===3?'Discovering channel funding wallets via on-chain linkage...':s===4?'Running BTC screening on associated addresses...':'Aggregating exposure into unified result ✓';
+  const inputBox = (label)=>`<div style="background:${s>=1?'rgba(124,58,237,0.12)':'rgba(124,58,237,0.04)'};border:1px solid ${s>=1?'rgba(124,58,237,0.4)':'rgba(124,58,237,0.1)'};border-radius:10px;padding:10px 18px;transition:all 0.4s;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${s>=1?'#a78bfa':'#4c1d95'};">${label}</div></div>`;
+  $('#step-diagram').innerHTML = `
+    ${bolts}
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:#475569;text-transform:uppercase;margin-bottom:20px;text-align:center;">Screening Architecture</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px;"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#7c3aed;letter-spacing:1px;text-transform:uppercase;">⚡ Lightning Layer (Off-Chain)</div></div>
+    <div style="display:flex;justify-content:center;gap:16px;margin-bottom:8px;flex-wrap:wrap;">${inputBox('📄 LN Invoice')}${inputBox('🔑 Node Public Key')}</div>
+    ${arrowDown(s>=2)}
+    <div style="background:${s>=2?'rgba(245,158,11,0.06)':'transparent'};border:1px solid ${s>=2?'rgba(245,158,11,0.2)':'#1e293b'};border-radius:12px;padding:14px 20px;margin-bottom:8px;text-align:center;transition:all 0.4s;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#f59e0b;text-transform:uppercase;margin-bottom:4px;">Elliptic Resolution Engine</div>
+      <div style="font-size:12px;color:${s>=2?'#94a3b8':'#475569'};transition:all 0.4s;">${resolveMsg}</div>
+    </div>
+    ${arrowDown(s>=3)}
+    <div style="display:flex;align-items:center;justify-content:center;margin-bottom:6px;"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#f97316;letter-spacing:1px;text-transform:uppercase;">₿ Bitcoin Layer 1 (On-Chain)</div></div>
+    <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">${addrs}</div>
+    ${arrowDown(s>=5)}
+    <div style="background:${s>=5?'rgba(34,197,94,0.08)':'transparent'};border:1px solid ${s>=5?'rgba(34,197,94,0.3)':'#1e293b'};border-radius:12px;padding:12px 20px;text-align:center;transition:all 0.5s;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${s>=5?'#22c55e':'#475569'};">${s>=5?'✓ Unified Lightning Risk Result':'Awaiting screening...'}</div>
+    </div>`;
+}
+function setFlowAuto(v){
+  flowAuto = v;
+  const b = $('#flow-autoplay');
+  b.classList.toggle('on', v); b.textContent = v ? '⏸ Pause' : '▶ Auto-play';
+  if(flowTimer){ clearInterval(flowTimer); flowTimer=null; }
+  if(v){ flowTimer = setInterval(()=>{ activeStep = activeStep>=5?1:activeStep+1; renderSteps(); renderStepDetail(); renderStepDiagram(); }, 3000); }
+}
+$('#flow-autoplay').addEventListener('click', ()=>setFlowAuto(!flowAuto));
+
+//──────────────────────────────────────────────────────────────────────────
+// FUNDING WALLET ATTRIBUTION
+//──────────────────────────────────────────────────────────────────────────
+const WALLET_COLORS = ["#f59e0b","#fb923c","#fbbf24","#f97316","#fcd34d"];
+const PHASES = [
+  {title:'Lightning Channels',subtitle:'Nodes open payment channels to transact off-chain',desc:'Lightning nodes establish bilateral payment channels. Payments flow back and forth through these channels without touching the Bitcoin blockchain — making them invisible to traditional on-chain screening.'},
+  {title:'Payment Activity',subtitle:'Transactions flow between nodes through open channels',desc:"Payments route through the network, hopping between channels. This activity is entirely off-chain — there's no on-chain transaction to screen. This is why Lightning requires a different approach."},
+  {title:'Channel Funding Discovery',subtitle:'Every channel must be opened with an on-chain Bitcoin transaction',desc:'Here\'s the key insight: while payments are off-chain, the channels themselves must be funded with real on-chain Bitcoin UTXOs. These funding transactions are visible on the blockchain.'},
+  {title:'Wallet Clustering',subtitle:'The same wallets fund multiple channels on the same node',desc:'When we observe that the same set of 4–5 wallets fund Channel A, Channel B, and Channel C — all connected to the same node — we gain high confidence these wallets are controlled by the same entity that operates this node.'},
+  {title:'Entity Attribution',subtitle:'Funding patterns reveal who controls each node',desc:'By screening these funding wallets through our standard Bitcoin risk engine, we can determine the risk exposure of the entity operating the Lightning node — even though their Lightning payments never touched the chain.'}
+];
+let activePhase = 0, fwAuto = false, fwTimer = null;
+
+const targetNode = {x:450,y:160,label:'Target Node',color:'#7c3aed'};
+const nodeB = {x:180,y:100,label:'Node B',color:'#6366f1'};
+const nodeC = {x:720,y:100,label:'Node C',color:'#6366f1'};
+const nodeD = {x:180,y:240,label:'Node D',color:'#6366f1'};
+const channels = [{from:targetNode,to:nodeB,label:'Channel A'},{from:targetNode,to:nodeC,label:'Channel B'},{from:targetNode,to:nodeD,label:'Channel C'}];
+const wallets = [
+  {x:280,y:420,label:'Wallet 1',color:WALLET_COLORS[0]},
+  {x:380,y:440,label:'Wallet 2',color:WALLET_COLORS[1]},
+  {x:480,y:450,label:'Wallet 3',color:WALLET_COLORS[2]},
+  {x:580,y:440,label:'Wallet 4',color:WALLET_COLORS[3]},
+  {x:680,y:420,label:'Wallet 5',color:WALLET_COLORS[4]}
+];
+const chAnchorA={x:315,y:130}, chAnchorB={x:585,y:130}, chAnchorC={x:315,y:200};
+
+function renderPhaseSelector(){
+  const c = $('#phase-selector'); c.innerHTML='';
+  PHASES.forEach((p,i)=>{
+    c.appendChild(el('button',{class:'chip'+(activePhase===i?' active':''),onclick:()=>{activePhase=i;setFwAuto(false);renderPhases();}},`${i+1}. ${p.title}`));
+  });
+  const at = el('button',{id:'fw-autoplay',class:'toggle-btn'+(fwAuto?' on':''),style:{marginLeft:'auto'},onclick:()=>setFwAuto(!fwAuto)}, fwAuto?'⏸ Pause':'▶ Auto');
+  c.appendChild(at);
+}
+function renderPhaseInfo(){
+  $('#phase-num').textContent = 'Phase '+(activePhase+1);
+  $('#phase-subtitle').textContent = PHASES[activePhase].subtitle;
+  $('#phase-desc').textContent = PHASES[activePhase].desc;
+}
+function animatedPayment(x1,y1,x2,y2,delay,dur,color){
+  const g = svg('circle',{r:'4',fill:color||'#a78bfa',opacity:'0.9'});
+  g.appendChild(svg('animateMotion',{dur:dur+'s',repeatCount:'indefinite',begin:delay+'s',path:`M${x1},${y1} L${x2},${y2}`}));
+  g.appendChild(svg('animate',{attributeName:'opacity',values:'0;0.9;0.9;0',dur:dur+'s',repeatCount:'indefinite',begin:delay+'s'}));
+  return g;
+}
+function pulseCircle(cx,cy,r,color,delay){
+  const c = svg('circle',{cx,cy,r,fill:'none',stroke:color,'stroke-width':'1',opacity:'0'});
+  c.appendChild(svg('animate',{attributeName:'r',values:`${r};${r+12}`,dur:'2.5s',repeatCount:'indefinite',begin:delay+'s'}));
+  c.appendChild(svg('animate',{attributeName:'opacity',values:'0.4;0',dur:'2.5s',repeatCount:'indefinite',begin:delay+'s'}));
+  return c;
+}
+function renderFwSvg(){
+  const W=900,H=520, p=activePhase;
+  const showChannels=p>=0, showPayments=p>=1, showFunding=p>=2, showClustering=p>=3, showEntity=p>=4;
+  const s = $('#fw-svg'); s.innerHTML='';
+  // defs
+  const defs = svg('defs');
+  defs.innerHTML = `
+    <filter id="fwGlow"><feGaussianBlur stdDeviation="3" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="fwGlowStrong"><feGaussianBlur stdDeviation="6" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="fwArrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" opacity="0.5"/></marker>`;
+  s.appendChild(defs);
+
+  s.appendChild(svg('text',{x:30,y:30,'font-family':"'JetBrains Mono', monospace",'font-size':'9',fill:'#7c3aed','letter-spacing':'1.5',opacity:'0.6'},'⚡ LIGHTNING LAYER (OFF-CHAIN)'));
+  if(showFunding){
+    s.appendChild(svg('text',{x:30,y:H-70,'font-family':"'JetBrains Mono', monospace",'font-size':'9',fill:'#f59e0b','letter-spacing':'1.5',opacity:'0.6'},'₿ BITCOIN LAYER 1 (ON-CHAIN)'));
+    s.appendChild(svg('line',{x1:20,y1:310,x2:W-20,y2:310,stroke:'#1e293b','stroke-width':'1','stroke-dasharray':'6 4',opacity:'0.6'}));
+  }
+
+  // channels
+  if(showChannels){
+    channels.forEach(ch=>{
+      const hi = showClustering;
+      s.appendChild(svg('line',{x1:ch.from.x,y1:ch.from.y,x2:ch.to.x,y2:ch.to.y,stroke:hi?'#a78bfa':'#4c1d95','stroke-width':hi?3:2,'stroke-dasharray':showPayments?'none':'6 4',opacity:hi?0.7:0.4,filter:hi?'url(#fwGlow)':'none'}));
+      s.appendChild(svg('text',{x:(ch.from.x+ch.to.x)/2,y:(ch.from.y+ch.to.y)/2-10,'font-family':"'JetBrains Mono', monospace",'font-size':'9',fill:'#a78bfa','text-anchor':'middle',opacity:hi?0.9:0.5},ch.label));
+    });
+  }
+  // payments
+  if(showPayments){
+    [[targetNode,nodeB,0,2.5],[nodeB,targetNode,1.2,2.8],[targetNode,nodeB,2.4,2.2],
+     [targetNode,nodeC,0.5,2.6],[nodeC,targetNode,1.8,2.3],
+     [targetNode,nodeD,0.3,3],[nodeD,targetNode,2,2.4]].forEach(([a,b,d,du])=>{
+      s.appendChild(animatedPayment(a.x,a.y,b.x,b.y,d,du));
+    });
+  }
+  // nodes B/C/D
+  [nodeB,nodeC,nodeD].forEach((n,i)=>{
+    s.appendChild(pulseCircle(n.x,n.y,22,n.color,i*0.8));
+    s.appendChild(svg('circle',{cx:n.x,cy:n.y,r:22,fill:'rgba(99,102,241,0.08)',stroke:n.color,'stroke-width':'1.5',opacity:'0.7'}));
+    s.appendChild(svg('circle',{cx:n.x,cy:n.y,r:5,fill:n.color,opacity:'0.8'}));
+    s.appendChild(svg('text',{x:n.x,y:n.y+36,'font-family':"'JetBrains Mono', monospace",'font-size':'10',fill:'#94a3b8','text-anchor':'middle'},n.label));
+  });
+  // target node
+  s.appendChild(pulseCircle(targetNode.x,targetNode.y,30,targetNode.color,0));
+  s.appendChild(pulseCircle(targetNode.x,targetNode.y,30,targetNode.color,1.2));
+  s.appendChild(svg('circle',{cx:targetNode.x,cy:targetNode.y,r:30,fill:'rgba(124,58,237,0.12)',stroke:showEntity?'#f59e0b':targetNode.color,'stroke-width':showEntity?2.5:2,filter:showEntity?'url(#fwGlowStrong)':'url(#fwGlow)'}));
+  s.appendChild(svg('circle',{cx:targetNode.x,cy:targetNode.y,r:8,fill:targetNode.color,opacity:'0.9'}));
+  s.appendChild(svg('text',{x:targetNode.x,y:targetNode.y+46,'font-family':"'JetBrains Mono', monospace",'font-size':'11',fill:showEntity?'#f59e0b':'#e2e8f0','text-anchor':'middle','font-weight':'600'},showEntity?'Identified Entity':'Target Node'));
+  if(showEntity){ s.appendChild(svg('text',{x:targetNode.x,y:targetNode.y+60,'font-family':"'JetBrains Mono', monospace",'font-size':'8',fill:'#f59e0b','text-anchor':'middle',opacity:'0.7'},'High Confidence Attribution')); }
+
+  // funding lines
+  if(showFunding){
+    [[chAnchorA,showClustering?0.5:0.2],[chAnchorB,showClustering?0.5:0.15],[chAnchorC,showClustering?0.5:0.15]].forEach(([anchor,op])=>{
+      wallets.forEach(w=>{
+        s.appendChild(svg('line',{x1:w.x,y1:w.y-16,x2:anchor.x,y2:anchor.y+4,stroke:w.color,'stroke-width':showClustering?1.5:1,opacity:op,'stroke-dasharray':showClustering?'none':'4 3','marker-end':'url(#fwArrow)'}));
+      });
+    });
+  }
+  // clustering dots
+  if(showClustering){
+    wallets.forEach((w,i)=>{
+      [[chAnchorA,2+i*0.3,i*0.4,0.8],[chAnchorB,2.5+i*0.2,i*0.5+0.8,0.6],[chAnchorC,2.3+i*0.25,i*0.3+1.5,0.6]].forEach(([anchor,dur,begin,op])=>{
+        const dot = svg('circle',{r:'3',fill:w.color,opacity:op});
+        dot.appendChild(svg('animateMotion',{dur:dur+'s',repeatCount:'indefinite',begin:begin+'s',path:`M${w.x},${w.y-16} L${anchor.x},${anchor.y+4}`}));
+        s.appendChild(dot);
+      });
+    });
+  }
+  // wallet boxes
+  if(showFunding){
+    wallets.forEach((w,i)=>{
+      s.appendChild(svg('rect',{x:w.x-36,y:w.y-16,width:72,height:32,rx:8,fill:showClustering?w.color+'15':'rgba(245,158,11,0.04)',stroke:showClustering?w.color:'rgba(245,158,11,0.2)','stroke-width':showClustering?1.5:1,filter:showEntity?'url(#fwGlow)':'none'}));
+      s.appendChild(svg('text',{x:w.x,y:w.y+2,'font-family':"'JetBrains Mono', monospace",'font-size':'9',fill:showClustering?w.color:'#f59e0b','text-anchor':'middle','font-weight':'500'},w.label));
+      s.appendChild(svg('text',{x:w.x,y:w.y+30,'font-family':"'JetBrains Mono', monospace",'font-size':'7',fill:'#64748b','text-anchor':'middle'},`bc1q...${(i*3+7).toString(16)}f${(i+2).toString(16)}`));
+    });
+  }
+  // entity box
+  if(showEntity){
+    const r = svg('rect',{x:240,y:370,width:480,height:110,rx:14,fill:'none',stroke:'#f59e0b','stroke-width':'2','stroke-dasharray':'8 4',opacity:'0.4'});
+    r.appendChild(svg('animate',{attributeName:'opacity',values:'0.2;0.5;0.2',dur:'3s',repeatCount:'indefinite'}));
+    s.appendChild(r);
+    s.appendChild(svg('text',{x:480,y:500,'font-family':"'JetBrains Mono', monospace",'font-size':'10',fill:'#f59e0b','text-anchor':'middle','letter-spacing':'2',opacity:'0.7'},'SAME ENTITY — SAME WALLET CLUSTER'));
+  }
+  // confidence badge
+  if(showClustering){
+    s.appendChild(svg('rect',{x:W-200,y:320,width:170,height:56,rx:10,fill:'rgba(34,197,94,0.08)',stroke:'rgba(34,197,94,0.3)','stroke-width':'1'}));
+    s.appendChild(svg('text',{x:W-115,y:340,'font-family':"'JetBrains Mono', monospace",'font-size':'8',fill:'#22c55e','text-anchor':'middle','letter-spacing':'1.5'},'ATTRIBUTION CONFIDENCE'));
+    s.appendChild(svg('text',{x:W-115,y:362,'font-family':"'DM Sans', sans-serif",'font-size':'18',fill:'#22c55e','text-anchor':'middle','font-weight':'700'},showEntity?'HIGH ✓':'Building...'));
+  }
+}
+function renderPhases(){ renderPhaseSelector(); renderPhaseInfo(); renderFwSvg(); }
+function setFwAuto(v){
+  fwAuto = v;
+  if(fwTimer){ clearInterval(fwTimer); fwTimer=null; }
+  if(v){ fwTimer = setInterval(()=>{ activePhase = activePhase>=4?0:activePhase+1; renderPhases(); }, 5000); }
+  else { renderPhaseSelector(); }
+}
+
+//──────────────────────────────────────────────────────────────────────────
+// NODE DUE DILIGENCE
+//──────────────────────────────────────────────────────────────────────────
+const PARTNERS = [
+  {rank:1,partner:"Bitfinex (lnd0)",screened:100,high:3,med:6,low:27,na:60,err:4,avg:0.63,capwt:0.14},
+  {rank:2,partner:"LNBiG Hub-1",screened:100,high:1,med:4,low:40,na:48,err:7,avg:0.53,capwt:0.08},
+  {rank:3,partner:"Bitfinex (lnd1)",screened:100,high:3,med:7,low:29,na:53,err:8,avg:0.75,capwt:0.17},
+  {rank:4,partner:"ACINQ",screened:100,high:2,med:3,low:32,na:59,err:4,avg:0.47,capwt:0.66},
+  {rank:5,partner:"Block (iad-1)",screened:100,high:1,med:3,low:26,na:62,err:8,avg:0.33,capwt:0.19},
+  {rank:6,partner:"OKX",screened:100,high:4,med:2,low:33,na:60,err:1,avg:0.58,capwt:0.42},
+  {rank:7,partner:"LNBiG Hub-2",screened:112,high:0,med:5,low:38,na:55,err:14,avg:0.34,capwt:0.06},
+  {rank:8,partner:"Binance",screened:45,high:0,med:0,low:8,na:35,err:2,avg:0.01,capwt:0.0},
+  {rank:9,partner:"cyberdyne.sh",screened:100,high:1,med:5,low:29,na:64,err:1,avg:0.4,capwt:1.3},
+  {rank:10,partner:"FixedFloat",screened:59,high:0,med:1,low:22,na:36,err:0,avg:0.2,capwt:0.02},
+  {rank:11,partner:"Kraken",screened:100,high:3,med:6,low:37,na:53,err:1,avg:0.63,capwt:0.58},
+  {rank:12,partner:"LNBiG Hub-3",screened:91,high:2,med:0,low:30,na:48,err:11,avg:0.32,capwt:0.01},
+  {rank:13,partner:"Unattributed (e960fd…)",screened:119,high:5,med:7,low:36,na:69,err:2,avg:0.79,capwt:0.34},
+  {rank:14,partner:"Megalithic.me",screened:106,high:2,med:2,low:38,na:58,err:6,avg:0.36,capwt:3.0},
+  {rank:15,partner:"Julia ÅLND01",screened:108,high:4,med:2,low:39,na:63,err:0,avg:0.58,capwt:3.81},
+  {rank:16,partner:"Boltz",screened:100,high:2,med:8,low:41,na:47,err:2,avg:0.74,capwt:0.34},
+  {rank:17,partner:"LNBiG Edge-3",screened:65,high:0,med:0,low:17,na:36,err:12,avg:0.03,capwt:0.0},
+  {rank:18,partner:"Strike",screened:100,high:1,med:2,low:30,na:67,err:0,avg:0.28,capwt:0.35},
+  {rank:19,partner:"LNBiG Edge-4",screened:71,high:2,med:1,low:24,na:35,err:9,avg:0.51,capwt:0.06},
+  {rank:20,partner:"LOOP",screened:46,high:0,med:2,low:16,na:28,err:0,avg:0.28,capwt:0.34}
+];
+const SAMPLE_COUNTERPARTIES = [
+  {rank:55,pubkey:"037f990e61…03a590",entity:"FixedFloat",category:"Coin Swap Service",risk:10,capacity:50000000,channels:1,rules:["Obfuscating & Misc."]},
+  {rank:100,pubkey:"03ef71c6bd…9d3d34",entity:"Unknown",category:"Unknown",risk:10,capacity:20000000,channels:1,rules:["Sanctioned, TF & CSAM"]},
+  {rank:95,pubkey:"037943defc…1a4817",entity:"Unknown",category:"Unknown",risk:7.8,capacity:21000000,channels:1,rules:["Obfuscating & Misc."]},
+  {rank:14,pubkey:"02f31f23d8…9ee6f1",entity:"Unknown",category:"Unknown",risk:6.6,capacity:500000000,channels:2,rules:["DPRK Bybit Exploit — Feb 2025","Illicit Activity","Obfuscating & Misc."]},
+  {rank:30,pubkey:"03bd6d2843…5b03bf",entity:"Unknown",category:"Unknown",risk:4.4,capacity:160000000,channels:2,rules:["Obfuscating & Misc."]},
+  {rank:4,pubkey:"0256ccca46…2f4b94",entity:"Unknown",category:"Unknown",risk:2.9,capacity:900000000,channels:18,rules:["Sanctioned, TF & CSAM","Illicit Activity","Obfuscating & Misc."]}
+];
+const JOURNEY = [
+  {phase:"The Ask",who:"Block",icon:"❓",title:"“How do we vet the partners we route through?”",body:"Block routes Cash App Lightning payments through third-party 'partner' routing nodes. Compliance needed a repeatable, regulator-defensible way to assess each partner before committing routing volume — without a manual review of thousands of channels."},
+  {phase:"The Constraint",who:"Lightning",icon:"🌫️",title:"Payments are off-chain and mostly invisible",body:"~96% of Block's prior LN screenings returned 404 — the node simply wasn't in any dataset. You can't screen a payment that never touched the chain, and channel adjacency doesn't prove who actually transacted."},
+  {phase:"The Insight",who:"Elliptic",icon:"💡",title:"Screen the neighborhood, weighted by capacity",body:"Each partner's open channels reveal its one-hop neighbors. Rank those neighbors by aggregated channel capacity, trace each to its on-chain funding wallets, and screen them through Block's own Lens rules. Capacity-weighting surfaces the material exposures first."},
+  {phase:"The Deliverable",who:"Elliptic",icon:"📊",title:"A 4-tab partner-node DD workbook",body:"Top-20 partners by capacity, each with its top ~100 counterparties screened, scored, and attributed — sorted so the highest-risk, highest-capacity exposures rise to the top. Reusable, auditable, and built on rules Block already trusts."}
+];
+const PIPELINE = [
+  {n:1,label:"Seed list",sub:"Top 20 by capacity"},
+  {n:2,label:"Open channels",sub:"Pull neighbors"},
+  {n:3,label:"Capacity weight",sub:"Cap at top ~100"},
+  {n:4,label:"Lens screening",sub:"Mirror Block's rules"},
+  {n:5,label:"Funding wallets",sub:"Trace on-chain"},
+  {n:6,label:"DD workbook",sub:"4-tab deliverable"}
+];
+let selectedPartner = 5, reportTab = 0, expandedRow = null;
+
+function riskColor(s){ if(s>=7)return '#ef4444'; if(s>=3)return '#f59e0b'; return '#22c55e'; }
+function riskBg(s){ if(s>=7)return 'rgba(239,68,68,0.12)'; if(s>=3)return 'rgba(245,158,11,0.12)'; return 'rgba(34,197,94,0.1)'; }
+function fmtSats(s){ if(s>=1e8) return (s/1e8).toFixed(2)+' BTC'; return (s/1e6).toFixed(1)+'M sats'; }
+
+function renderJourney(){
+  const c = $('#journey'); c.innerHTML='';
+  JOURNEY.forEach((step,i)=>{
+    const last = i===JOURNEY.length-1;
+    const row = el('div',{style:{display:'flex',gap:'16px',alignItems:'stretch'}});
+    const rail = el('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',width:'44px',flexShrink:'0'}});
+    rail.innerHTML = `<div style="width:44px;height:44px;border-radius:12px;flex-shrink:0;background:${last?'rgba(245,158,11,0.12)':'rgba(124,58,237,0.1)'};border:1px solid ${last?'rgba(245,158,11,0.4)':'rgba(124,58,237,0.3)'};display:flex;align-items:center;justify-content:center;font-size:20px;">${step.icon}</div>${!last?'<div style="width:1px;flex:1;min-height:16px;background:linear-gradient(180deg,rgba(124,58,237,0.3),rgba(124,58,237,0.05));margin-top:4px;"></div>':''}`;
+    const card = el('div',{class:'card',style:{flex:'1',padding:'16px 20px'}});
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;color:${last?'#f59e0b':'#a78bfa'};text-transform:uppercase;">${step.phase}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;color:#475569;text-transform:uppercase;border:1px solid #1e293b;border-radius:4px;padding:2px 6px;">${step.who}</span>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:#f1f5f9;margin-bottom:6px;">${step.title}</div>
+      <div style="font-size:13px;line-height:1.6;color:#94a3b8;">${step.body}</div>`;
+    row.appendChild(rail); row.appendChild(card); c.appendChild(row);
+  });
+}
+function renderPipeline(){
+  const c = $('#pipeline'); c.innerHTML='';
+  PIPELINE.forEach((p,i)=>{
+    const wrap = el('div',{style:{display:'flex',alignItems:'center'}});
+    wrap.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:92px;padding:0 4px;">
+      <div style="width:30px;height:30px;border-radius:50%;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.4);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:#22c55e;font-weight:600;">${p.n}</div>
+      <div style="font-size:11px;font-weight:600;color:#e2e8f0;text-align:center;">${p.label}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:#64748b;text-align:center;letter-spacing:0.3px;">${p.sub}</div>
+    </div>${i<PIPELINE.length-1?`<svg width="22" height="12" viewBox="0 0 22 12" fill="none" style="flex-shrink:0;margin-top:-22px;"><line x1="0" y1="6" x2="14" y2="6" stroke="#22c55e" stroke-width="1.5" opacity="0.5"/><path d="M12 2l5 4-5 4" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/></svg>`:''}`;
+    c.appendChild(wrap);
+  });
+}
+function renderDDStats(){
+  const totHits = PARTNERS.reduce((a,p)=>a+p.high+p.med,0);
+  const stats = [
+    {value:"20",label:"Partner nodes"},
+    {value:"1,822",label:"Addresses screened"},
+    {value:"612",label:"Unique pubkeys"},
+    {value:String(totHits),label:"Risk hits surfaced",accent:"#f59e0b"}
+  ];
+  const c = $('#dd-stats'); c.innerHTML='';
+  stats.forEach(s=>{
+    c.appendChild(el('div',{class:'card',style:{padding:'16px 20px',textAlign:'center'},html:`<div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:${s.accent||'#f1f5f9'};margin-bottom:4px;">${s.value}</div><div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">${s.label}</div>`}));
+  });
+}
+function renderReportTabs(){
+  const tabs = ["Partner Summary","Neighbor Risk","Neighbor Detail","Methodology"];
+  const c = $('#report-tabs'); c.innerHTML='';
+  tabs.forEach((t,i)=>{
+    c.appendChild(el('button',{class:'report-tab'+(reportTab===i?' active':''),onclick:()=>{reportTab=i;renderReportTabs();renderReportBody();}},t));
+  });
+}
+function donut(p){
+  const segs=[[p.high,'#ef4444'],[p.med,'#f59e0b'],[p.low,'#22c55e'],[p.na,'#334155'],[p.err,'#1e293b']];
+  const total = segs.reduce((a,s)=>a+s[0],0)||1;
+  const R=52, C=2*Math.PI*R; let offset=0;
+  let segHtml='';
+  segs.forEach(([v,col])=>{ if(v===0)return; const len=(v/total)*C; segHtml+=`<circle cx="70" cy="70" r="${R}" fill="none" stroke="${col}" stroke-width="18" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-offset}" transform="rotate(-90 70 70)"/>`; offset+=len; });
+  return `<svg width="140" height="140" viewBox="0 0 140 140" style="flex-shrink:0;">
+    <circle cx="70" cy="70" r="${R}" fill="none" stroke="#0f172a" stroke-width="18"/>${segHtml}
+    <text x="70" y="64" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="22" font-weight="700" fill="#f1f5f9">${p.high+p.med}</text>
+    <text x="70" y="82" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="9" fill="#64748b" letter-spacing="1">RISK HITS</text>
+  </svg>`;
+}
+function renderReportBody(){
+  const body = $('#report-body'); body.innerHTML='';
+  const maxScreened = Math.max(...PARTNERS.map(p=>p.screened));
+  const sel = PARTNERS[selectedPartner];
+
+  if(reportTab===0){
+    const wrap = el('div');
+    wrap.innerHTML = `<div style="font-size:13px;color:#94a3b8;line-height:1.6;margin-bottom:16px;">Every partner node at a glance. Bar width = counterparties screened; segments = risk band. Click a partner to inspect it.</div>`;
+    const list = el('div',{style:{display:'flex',flexDirection:'column',gap:'5px'}});
+    PARTNERS.forEach((p,i)=>{
+      const total = p.high+p.med+p.low+p.na+p.err;
+      const w = (p.screened/maxScreened)*100;
+      const segs=[['high','#ef4444'],['med','#f59e0b'],['low','#22c55e'],['na','#334155'],['err','#1e293b']]
+        .map(([k,col])=> p[k]>0?`<div title="${k}: ${p[k]}" style="width:${(p[k]/total)*100}%;background:${col};"></div>`:'').join('');
+      const btn = el('button',{class:'heat-row'+(i===selectedPartner?' active':''),onclick:()=>{selectedPartner=i;renderReportBody();}});
+      btn.innerHTML = `
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#475569;">${p.rank}</span>
+        <span style="font-size:12px;color:${i===selectedPartner?'#f1f5f9':'#cbd5e1'};font-weight:${i===selectedPartner?600:400};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.partner}</span>
+        <div style="display:flex;height:18px;border-radius:4px;overflow:hidden;width:${w}%;min-width:60px;background:#0f172a;">${segs}</div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;text-align:right;">${p.high+p.med} hits</span>`;
+      list.appendChild(btn);
+    });
+    wrap.appendChild(list);
+    const legend = el('div',{style:{display:'flex',gap:'16px',marginTop:'16px',flexWrap:'wrap',fontFamily:"'JetBrains Mono', monospace",fontSize:'9px',color:'#64748b'}});
+    legend.innerHTML = [['High ≥7','#ef4444'],['Med 3–6.9','#f59e0b'],['Low 0–2.9','#22c55e'],['N/A attributed','#334155'],['Error','#1e293b']]
+      .map(([l,col])=>`<span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:${col};${col==='#1e293b'?'border:1px solid #334155;':''}"></span>${l}</span>`).join('');
+    wrap.appendChild(legend);
+    body.appendChild(wrap);
+
+  } else if(reportTab===1){
+    const numbers = [['High ≥7',sel.high,'#ef4444'],['Medium 3–6.9',sel.med,'#f59e0b'],['Low 0–2.9',sel.low,'#22c55e'],['Attributed (N/A)',sel.na,'#94a3b8'],['Avg risk',sel.avg,'#cbd5e1'],['Avg risk (cap-wt)',sel.capwt,'#a78bfa']]
+      .map(([l,v,col])=>`<div class="card" style="padding:10px 14px;"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:${col};">${v}</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">${l}</div></div>`).join('');
+    body.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#f59e0b;text-transform:uppercase;margin-bottom:4px;">Partner #${sel.rank} — selected from Summary</div>
+          <div style="font-size:18px;font-weight:700;color:#f1f5f9;">${sel.partner}</div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">${sel.screened} counterparties screened</div>
+      </div>
+      <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
+        ${donut(sel)}
+        <div style="flex:1;min-width:200px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">${numbers}</div>
+      </div>
+      <div style="margin-top:16px;padding:12px 16px;background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.15);border-radius:10px;font-size:12px;color:#94a3b8;line-height:1.6;">
+        <span style="color:#a78bfa;font-weight:600;">Why capacity-weighting matters:</span> ${sel.partner}'s raw average risk is ${sel.avg}, but capacity-weighted it's ${sel.capwt}. The weighted figure reflects where the <em>sats actually sit</em> — a high-risk neighbor with a tiny channel barely moves it, while a large channel to a flagged entity pulls it up sharply.
+      </div>`;
+
+  } else if(reportTab===2){
+    const wrap = el('div');
+    wrap.innerHTML = `
+      <div style="font-size:13px;color:#94a3b8;line-height:1.6;margin-bottom:14px;">Counterparty-level detail for <span style="color:#f1f5f9;font-weight:600;">${sel.partner}</span>, sorted highest-risk first. Click a row to see triggered rules.</div>
+      <div style="display:grid;grid-template-columns:1fr 130px 70px 90px;gap:8px;padding:0 12px 8px;font-family:'JetBrains Mono',monospace;font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #1e293b;">
+        <span>Counterparty</span><span>Entity</span><span style="text-align:center;">Risk</span><span style="text-align:right;">Capacity</span>
+      </div>`;
+    const rows = el('div',{style:{display:'flex',flexDirection:'column'}});
+    SAMPLE_COUNTERPARTIES.forEach((cp,i)=>{
+      const open = expandedRow===i;
+      const container = el('div',{style:{borderBottom:'1px solid #131c2e'}});
+      const btn = el('button',{class:'detail-row-btn'+(open?' open':''),onclick:()=>{expandedRow=open?null:i;renderReportBody();}});
+      btn.innerHTML = `
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#cbd5e1;">${cp.pubkey}</span>
+        <span style="font-size:11px;color:${cp.entity==='Unknown'?'#475569':'#a78bfa'};">${cp.entity}</span>
+        <span style="text-align:center;"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:${riskColor(cp.risk)};background:${riskBg(cp.risk)};padding:3px 8px;border-radius:6px;">${cp.risk}</span></span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;text-align:right;">${fmtSats(cp.capacity)}</span>`;
+      container.appendChild(btn);
+      if(open){
+        const rules = cp.rules.map(r=>{
+          const red = r.includes('Sanctioned')||r.includes('DPRK');
+          return `<span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.3px;padding:4px 9px;border-radius:6px;background:${red?'rgba(239,68,68,0.1)':'rgba(245,158,11,0.08)'};border:1px solid ${red?'rgba(239,68,68,0.3)':'rgba(245,158,11,0.2)'};color:${red?'#fca5a5':'#fbbf24'};">${r}</span>`;
+        }).join('');
+        container.appendChild(el('div',{style:{padding:'0 12px 14px',display:'flex',flexDirection:'column',gap:'8px'},html:`
+          <div style="display:flex;gap:16px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;">
+            <span>Category: <span style="color:#94a3b8;">${cp.category}</span></span>
+            <span>Channels: <span style="color:#94a3b8;">${cp.channels}</span></span>
+            <span>Capacity rank: <span style="color:#94a3b8;">#${cp.rank}</span></span>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">${rules}</div>`}));
+      }
+      rows.appendChild(container);
+    });
+    wrap.appendChild(rows);
+    wrap.appendChild(el('div',{style:{marginTop:'12px',fontFamily:"'JetBrains Mono', monospace",fontSize:'9px',color:'#475569',textAlign:'center'}},'Representative rows from the OKX tab · full workbook lists ~100 per partner'));
+    body.appendChild(wrap);
+
+  } else if(reportTab===3){
+    const items = [
+      ["Seed selection","The top 20 Lightning nodes by public channel capacity, verified against 1ml. These are the partners Block routes through or is evaluating."],
+      ["Counterparty discovery","For each seed, open-channel data reveals every one-hop neighbor. Counterparties are de-duplicated and ranked by aggregated active channel capacity (sats)."],
+      ["Capacity cap","Manual review of ~4,300 channels is infeasible, so each partner is capped at its top ~100 counterparties by capacity — the exposures that actually carry weight."],
+      ["Screening","Each counterparty's on-chain funding wallets are screened through a dedicated Lens environment that mirrors Block's own risk rules (exchanges 10/10, software wallet 5/10) — mirror, don't fix."],
+      ["Scoring & sort","Risk score, attributed entity, category, and triggered rules are attached to each row, then sorted so the highest-risk + highest-capacity counterparties surface first."]
+    ];
+    body.innerHTML = `<div style="display:flex;flex-direction:column;gap:14px;">${items.map(([t,b],i)=>`
+      <div style="display:flex;gap:14px;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#f59e0b;flex-shrink:0;width:24px;">${i+1}</div>
+        <div><div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:4px;">${t}</div><div style="font-size:13px;color:#94a3b8;line-height:1.6;">${b}</div></div>
+      </div>`).join('')}</div>`;
+  }
+}
+
+//──────────────────────────────────────────────────────────────────────────
+// Init
+//──────────────────────────────────────────────────────────────────────────
+renderSteps(); renderStepDetail(); renderStepDiagram();
+renderPhases();
+renderJourney(); renderPipeline(); renderDDStats(); renderReportTabs(); renderReportBody();
+</script>
+</body>
+</html>
