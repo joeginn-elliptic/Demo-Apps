@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>How Polymarket uses Elliptic — embed</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --es-bg:#080c14; --es-well:#0a0f1a; --es-surface:#0f172a; --es-border:#1e293b; --es-border-faint:#131c2e;
+  --es-text:#f1f5f9; --es-text-body:#e2e8f0; --es-text-soft:#cbd5e1; --es-text-muted:#94a3b8;
+  --es-text-dim:#64748b; --es-text-fainter:#475569;
+  --es-accent:#3b82f6; --es-accent-light:#60a5fa;
+  --es-high:#ef4444; --es-low:#22c55e;
+  --es-font-body:'DM Sans',system-ui,sans-serif; --es-font-mono:'JetBrains Mono',ui-monospace,monospace;
+  --es-r-lg:16px; --es-r-md:14px; --es-r-xs:8px;
+}
+* { box-sizing:border-box; }
+html, body { margin:0; padding:0; background:transparent; }
+
+/* The embed module — a complete, self-contained card that fills its container. */
+.embed {
+  position:relative; width:100%; overflow:hidden;
+  background:var(--es-bg); color:var(--es-text-body);
+  font-family:var(--es-font-body);
+  border:1px solid var(--es-border); border-radius:var(--es-r-lg);
+  padding:24px;
+}
+/* contained dot-grid (not fixed to viewport) */
+.embed::before {
+  content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background-image:radial-gradient(circle at 1px 1px, rgba(148,163,184,0.035) 1px, transparent 0);
+  background-size:32px 32px;
+}
+.embed > * { position:relative; z-index:1; }
+
+/* heading */
+.eyebrow-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.eyebrow { font-family:var(--es-font-mono); font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--es-accent); font-weight:600; }
+.eyebrow-rule { height:1px; width:28px; background:linear-gradient(90deg,var(--es-accent),transparent); }
+.head { font-family:var(--es-font-body); font-weight:700; font-size:19px; color:var(--es-text); margin:0 0 4px; }
+.sub { font-size:13px; color:var(--es-text-muted); line-height:1.55; margin:0 0 20px; }
+
+/* flow well */
+.well { background:var(--es-well); border:1px solid var(--es-border); border-radius:var(--es-r-md); padding:14px 12px; margin-bottom:16px; }
+.well svg { width:100%; height:auto; display:block; }
+.flow-stage text { font-family:var(--es-font-mono); }
+
+/* cards */
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; }
+.card { background:var(--es-surface); border:1px solid var(--es-border); border-radius:var(--es-r-md); padding:16px 16px; }
+.card.scr { border-left:3px solid var(--es-low); }
+.card.not { border-left:3px solid var(--es-high); }
+.card-label { font-family:var(--es-font-mono); font-size:9px; letter-spacing:2px; text-transform:uppercase; margin-bottom:9px; }
+.card.scr .card-label { color:var(--es-low); }
+.card.not .card-label { color:var(--es-high); }
+.list { margin:0; padding:0; list-style:none; }
+.list li { position:relative; padding:7px 0 7px 20px; font-size:13px; color:var(--es-text-soft); line-height:1.55; border-bottom:1px solid var(--es-border-faint); }
+.list li:last-child { border-bottom:none; }
+.list li::before { content:"›"; position:absolute; left:3px; top:7px; color:var(--es-accent); font-family:var(--es-font-mono); }
+
+@media (prefers-reduced-motion:reduce){ *,*::before,*::after{animation-duration:.001ms!important;} }
+</style>
+</head>
+<body>
+
+<div class="embed">
+
+  <div class="eyebrow-row">
+    <span class="eyebrow">Live Integration</span>
+    <span class="eyebrow-rule"></span>
+  </div>
+  <h3 class="head">How the screening works today</h3>
+  <p class="sub">Real-time screening of USDC deposits into Polymarket proxy wallets, via the Lens API.</p>
+
+  <div class="well">
+    <svg viewBox="0 0 920 200" class="flow-stage" aria-label="USDC deposit screening flow: user deposit to Lens to proxy wallets">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#475569"/></marker>
+      </defs>
+
+      <line x1="200" y1="100" x2="312" y2="100" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="480" y1="100" x2="592" y2="100" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="760" y1="100" x2="800" y2="100" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- node 1: user deposit -->
+      <rect x="40" y="68" width="160" height="64" rx="12" fill="#0f172a" stroke="#3b82f6" stroke-opacity="0.45"/>
+      <text x="120" y="94" text-anchor="middle" fill="#93c5fd" font-size="12" font-weight="600">User deposit</text>
+      <text x="120" y="113" text-anchor="middle" fill="#64748b" font-size="9">USDC · Sol→USDC→Polygon</text>
+
+      <!-- node 2: lens screen -->
+      <rect x="320" y="60" width="160" height="80" rx="12" fill="#0f172a" stroke="#3b82f6" stroke-opacity="0.75"/>
+      <circle cx="400" cy="82" r="3" fill="#3b82f6"><animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/></circle>
+      <text x="400" y="106" text-anchor="middle" fill="#60a5fa" font-size="13" font-weight="700">Lens (API)</text>
+      <text x="400" y="124" text-anchor="middle" fill="#94a3b8" font-size="9">Real-time screen at deposit</text>
+
+      <!-- node 3: proxy wallets -->
+      <rect x="600" y="68" width="160" height="64" rx="12" fill="#0f172a" stroke="#334155"/>
+      <text x="680" y="94" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">Proxy wallets</text>
+      <text x="680" y="113" text-anchor="middle" fill="#64748b" font-size="9">Polymarket-associated</text>
+
+      <!-- node 4: market -->
+      <rect x="800" y="76" width="100" height="48" rx="10" fill="#0f172a" stroke="#1e293b"/>
+      <text x="850" y="104" text-anchor="middle" fill="#94a3b8" font-size="11">Market</text>
+
+      <!-- moving dots -->
+      <circle r="4" fill="#60a5fa"><animateMotion dur="3.4s" repeatCount="indefinite" path="M120,100 H800"/></circle>
+      <circle r="3" fill="#93c5fd"><animateMotion dur="3.4s" begin="1.1s" repeatCount="indefinite" path="M120,100 H800"/></circle>
+      <circle r="3" fill="#3b82f6"><animateMotion dur="3.4s" begin="2.2s" repeatCount="indefinite" path="M120,100 H800"/></circle>
+    </svg>
+  </div>
+
+  <div class="cards">
+    <div class="card scr">
+      <div class="card-label">Screened today</div>
+      <ul class="list">
+        <li>USDC deposits to proxy wallets, in real time</li>
+        <li>~29k transactions / month since ~May 1</li>
+        <li>OFAC SDN list entries</li>
+      </ul>
+    </div>
+    <div class="card not">
+      <div class="card-label">Not screened today</div>
+      <ul class="list">
+        <li>Withdrawals / outbound flows</li>
+        <li>Ongoing rescreening after deposit</li>
+        <li>Everything beyond the OFAC SDN list</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
