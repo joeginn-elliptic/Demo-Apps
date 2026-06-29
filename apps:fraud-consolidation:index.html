@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Consolidation Detection — Elliptic</title>
+<style>
+/* ============================================================================
+   ELLIPTIC SIGNAL — design system (inlined so this demo is a single portable file)
+   ============================================================================ */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --es-bg:#080c14; --es-well:#0a0f1a; --es-surface:#0f172a; --es-border:#1e293b; --es-border-faint:#131c2e;
+  --es-text:#f1f5f9; --es-text-body:#e2e8f0; --es-text-soft:#cbd5e1; --es-text-muted:#94a3b8;
+  --es-text-dim:#64748b; --es-text-fainter:#475569; --es-text-ghost:#334155;
+  --es-accent:#f59e0b; --es-accent-light:#fbbf24; --es-accent-2:#fb923c;
+  --es-accent-tint:rgba(245,158,11,0.10); --es-accent-line:rgba(245,158,11,0.30);
+  --es-ln:#7c3aed; --es-ln-light:#a78bfa; --es-ln-node:#6366f1; --es-ln-deep:#4c1d95;
+  --es-btc:#f97316; --es-btc-light:#fb923c;
+  --es-high:#ef4444; --es-med:#f59e0b; --es-low:#22c55e; --es-info:#3b82f6;
+  --es-font-body:'DM Sans',system-ui,sans-serif; --es-font-mono:'JetBrains Mono',ui-monospace,monospace;
+  --es-r-pill:20px; --es-r-lg:16px; --es-r-md:14px; --es-r-sm:10px; --es-r-xs:8px;
+}
+*{box-sizing:border-box;} html,body{margin:0;padding:0;}
+body.es-body{min-height:100vh;background:var(--es-bg);color:var(--es-text-body);font-family:var(--es-font-body);}
+.es-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:radial-gradient(circle at 1px 1px,rgba(148,163,184,0.03) 1px,transparent 0);background-size:32px 32px;}
+.es-wrap{max-width:1000px;margin:0 auto;padding:40px 24px;position:relative;z-index:1;}
+.es-eyebrow{font-family:var(--es-font-mono);font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--es-accent);font-weight:600;}
+.es-label{font-family:var(--es-font-mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--es-accent);}
+.es-eyebrow-rule{height:1px;width:32px;background:linear-gradient(90deg,var(--es-accent),transparent);}
+.es-title{font-family:var(--es-font-body);font-weight:700;line-height:1.2;margin:0;
+  background:linear-gradient(135deg,#f1f5f9 0%,#94a3b8 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.es-title-1{font-size:32px;} .es-title-2{font-size:26px;} .es-title-3{font-size:20px;}
+.es-subtitle{font-size:15px;color:var(--es-text-dim);line-height:1.6;margin:0;max-width:680px;}
+.es-mono{font-family:var(--es-font-mono);}
+.es-card{background:var(--es-surface);border:1px solid var(--es-border);border-radius:var(--es-r-md);padding:20px 18px;}
+.es-panel{background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);border:1px solid var(--es-border);border-radius:var(--es-r-lg);padding:24px;}
+.es-well{background:var(--es-well);border:1px solid var(--es-border);border-radius:var(--es-r-lg);padding:24px;}
+.es-callout{border-radius:var(--es-r-md);padding:18px 24px;display:flex;gap:14px;align-items:flex-start;
+  background:linear-gradient(135deg,rgba(245,158,11,0.06) 0%,rgba(245,158,11,0.02) 100%);border:1px solid rgba(245,158,11,0.15);}
+.es-stat-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));}
+.es-stat{background:var(--es-surface);border:1px solid var(--es-border);border-radius:var(--es-r-sm);padding:16px 20px;text-align:center;}
+.es-stat-value{font-family:var(--es-font-mono);font-size:22px;font-weight:700;color:var(--es-text);margin-bottom:4px;}
+.es-stat-label{font-size:11px;color:var(--es-text-dim);text-transform:uppercase;letter-spacing:0.5px;}
+.es-chip{font-family:var(--es-font-mono);font-size:10px;letter-spacing:0.8px;padding:8px 14px;border-radius:var(--es-r-xs);
+  border:1px solid var(--es-border);background:var(--es-surface);color:var(--es-text-dim);cursor:pointer;transition:all .3s;white-space:nowrap;}
+.es-chip.active{border:1.5px solid var(--es-accent);background:var(--es-accent-tint);color:var(--es-accent);}
+.es-toggle{font-family:var(--es-font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--es-text-dim);
+  background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.2);border-radius:var(--es-r-xs);padding:8px 14px;cursor:pointer;transition:all .3s;}
+.es-toggle.on{color:var(--es-accent);background:var(--es-accent-tint);border-color:var(--es-accent-line);}
+.es-divider{display:flex;align-items:center;gap:16px;}
+.es-divider::before,.es-divider::after{content:"";height:1px;flex:1;background:var(--es-border);}
+.es-divider>span{font-family:var(--es-font-mono);font-size:9px;letter-spacing:2.5px;color:var(--es-text-fainter);
+  text-transform:uppercase;white-space:nowrap;padding:6px 16px;border:1px solid var(--es-border);border-radius:var(--es-r-pill);}
+.es-footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--es-border);text-align:center;
+  font-family:var(--es-font-mono);font-size:10px;color:var(--es-text-ghost);letter-spacing:1px;}
+.es-pill-high{background:rgba(239,68,68,0.12);color:var(--es-high);padding:3px 8px;border-radius:6px;font-family:var(--es-font-mono);font-weight:700;}
+.es-pill-low{background:rgba(34,197,94,0.10);color:var(--es-low);padding:3px 8px;border-radius:6px;font-family:var(--es-font-mono);font-weight:700;}
+:focus-visible{outline:2px solid var(--es-accent);outline-offset:2px;}
+@media (max-width:720px){.es-wrap{padding:28px 16px;} .es-title-1{font-size:26px;}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important;}}
+
+/* ----------------------------------------------------------- app-specific -- */
+.head-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.section{margin-bottom:30px;}
+.eyebrow-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+
+/* diagram */
+.diagram-shell{position:relative;}
+.diagram-svg{width:100%;height:auto;display:block;}
+.es-edge{fill:none;stroke:var(--es-border);stroke-width:1;transition:stroke .3s,stroke-width .3s,opacity .3s;opacity:.55;}
+.es-edge.on{stroke:var(--es-text-muted);stroke-width:1.4;opacity:1;}
+.es-edge.e-cons.on{stroke:var(--es-accent);opacity:1;}
+.nd{fill:var(--es-surface);stroke:var(--es-text-fainter);stroke-width:1.4;transition:stroke .3s,fill .3s;}
+.nd.on{stroke:var(--es-text-soft);fill:#16203a;}
+.nd-ex{fill:var(--es-info);stroke:#1e3a5f;stroke-width:2;}
+.nd-ex.on{fill:#5aa0ff;}
+.node-cons-box{fill:rgba(245,158,11,0.14);stroke:var(--es-accent);stroke-width:2.2;}
+.node-cons-dot{fill:var(--es-accent);}
+.node-glow{filter:drop-shadow(0 0 10px rgba(245,158,11,0.55));}
+.node-label{font-family:var(--es-font-mono);font-size:9px;fill:var(--es-text-dim);}
+.node-label.lead{fill:var(--es-text-soft);font-size:10px;}
+.node-label.cons{fill:var(--es-accent-light);font-weight:600;}
+.flow-dot{fill:var(--es-accent-light);}
+.edge-amt{font-family:var(--es-font-mono);font-size:8px;fill:var(--es-text-ghost);}
+
+/* step walkthrough */
+.step-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.step-body{min-height:64px;}
+.step-body .es-label{margin-bottom:6px;display:block;}
+.step-body p{margin:0;font-size:14px;line-height:1.65;color:var(--es-text-soft);}
+
+/* controls */
+.ctrl-grid{display:grid;gap:22px;grid-template-columns:1fr 1fr;}
+@media (max-width:720px){.ctrl-grid{grid-template-columns:1fr;}}
+.ctrl label{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--es-font-mono);
+  font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--es-text-dim);margin-bottom:8px;}
+.ctrl label b{font-size:13px;color:var(--es-accent);font-weight:600;}
+input[type=range]{width:100%;accent-color:var(--es-accent);height:4px;cursor:pointer;}
+.chip-set{display:flex;gap:6px;flex-wrap:wrap;}
+.readout{font-family:var(--es-font-mono);font-size:11px;color:var(--es-text-muted);letter-spacing:.5px;
+  margin-top:4px;padding:10px 14px;border:1px dashed var(--es-border);border-radius:var(--es-r-xs);background:var(--es-well);}
+.readout .amber{color:var(--es-accent);}
+.vel-note{margin-top:12px;font-size:13px;color:var(--es-text-muted);line-height:1.6;}
+.vel-note.hidden{display:none;}
+.tiny-tag{font-family:var(--es-font-mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--es-text-ghost);}
+
+/* pattern cards */
+.pat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+@media (max-width:640px){.pat-grid{grid-template-columns:1fr;}}
+.pat .ptitle{font-size:15px;font-weight:700;color:var(--es-text);margin:10px 0 8px;}
+.pat p{font-size:12.5px;line-height:1.6;color:var(--es-text-muted);margin:0;}
+.pat .picon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--es-border);background:var(--es-well);}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--es-font-mono);font-size:10px;color:var(--es-text-dim);letter-spacing:.5px;margin-top:14px;}
+.legend span{display:inline-flex;align-items:center;gap:7px;}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
+.dot.ex{background:var(--es-info);border-radius:50%;}
+.dot.hop{background:var(--es-surface);border:1.4px solid var(--es-text-fainter);transform:rotate(45deg);}
+.dot.cons{background:rgba(245,158,11,0.2);border:1.6px solid var(--es-accent);transform:rotate(45deg);}
+</style>
+</head>
+<body class="es-body">
+<div class="es-grid"></div>
+
+<div class="es-wrap">
+
+  <!-- ===================== HEADER ===================== -->
+  <header style="margin-bottom:30px;">
+    <div class="head-row">
+      <div class="es-eyebrow">Elliptic · Nexus</div>
+      <div class="es-eyebrow-rule"></div>
+    </div>
+    <h1 class="es-title es-title-1" style="margin-bottom:10px;">Following the money, two hops out</h1>
+    <p class="es-subtitle">
+      Funds leave an exchange, scatter across fresh withdrawal addresses, then quietly converge on a single wallet.
+      That convergence is a signature of scam and mule networks. This is how we detect it — and how far we can take it.
+    </p>
+  </header>
+
+  <!-- ===================== CORE PRINCIPLE ===================== -->
+  <div class="es-callout section" style="margin-bottom:30px;">
+    <div style="font-size:20px;margin-top:1px;">⚡</div>
+    <div>
+      <div class="es-label" style="margin-bottom:5px;">The point</div>
+      <div style="font-size:14px;color:var(--es-text-soft);line-height:1.65;">
+        This is <b style="color:var(--es-text);">flag and investigate</b>, not compliance. The strongest predictor of who gets
+        scammed next is who got scammed before — so surfacing consolidation early lets you protect the same people twice.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== DIAGRAM + STEPS ===================== -->
+  <div class="eyebrow-head">
+    <div class="es-eyebrow">The method</div><div class="es-eyebrow-rule"></div>
+  </div>
+
+  <div class="es-well section" style="margin-bottom:18px;">
+    <div class="diagram-shell">
+      <div id="diagram"></div>
+    </div>
+    <div class="legend">
+      <span><i class="dot ex"></i> Exchange</span>
+      <span><i class="dot hop"></i> Withdrawal address</span>
+      <span><i class="dot cons"></i> Consolidation point — the signal</span>
+    </div>
+  </div>
+
+  <div class="es-panel section">
+    <div class="step-row" id="steps">
+      <button class="es-chip active" data-step="0">1 · Resolve exchange</button>
+      <button class="es-chip" data-step="1">2 · Hop 1</button>
+      <button class="es-chip" data-step="2">3 · Trace onward</button>
+      <button class="es-chip" data-step="3">4 · Consolidation</button>
+    </div>
+    <div class="step-body" id="step-body"></div>
+  </div>
+
+  <!-- ===================== TUNE THE DETECTION ===================== -->
+  <div class="es-divider section" style="margin:36px 0 26px;"><span>Tune the lens</span></div>
+
+  <div class="eyebrow-head">
+    <div class="es-eyebrow">What else we can do</div><div class="es-eyebrow-rule"></div>
+  </div>
+  <p class="es-subtitle section" style="margin-bottom:20px;">
+    Two hops is the starting point, not the limit. Reach deeper into the network, narrow the time window,
+    raise the bar for what counts as convergence, or layer in a velocity rule — funds that arrive and leave fast.
+  </p>
+
+  <div class="es-panel section" style="margin-bottom:18px;">
+    <div class="ctrl-grid">
+      <div class="ctrl">
+        <label>Hops from exchange <b id="v-hops">2</b></label>
+        <div class="chip-set" id="hop-set">
+          <button class="es-chip active" data-hops="2">2 hops</button>
+          <button class="es-chip" data-hops="3">3 hops</button>
+          <button class="es-chip" data-hops="4">4 hops</button>
+        </div>
+      </div>
+
+      <div class="ctrl">
+        <label>Min. converging sources <b id="v-shared">2</b></label>
+        <input type="range" id="r-shared" min="2" max="10" step="1" value="2" />
+        <div class="tiny-tag">distinct hop-1 addresses feeding one wallet</div>
+      </div>
+
+      <div class="ctrl">
+        <label>Lookback window <b id="v-days">30 days</b></label>
+        <input type="range" id="r-days" min="7" max="90" step="1" value="30" />
+        <div class="tiny-tag">how far back we scan exchange outflows</div>
+      </div>
+
+      <div class="ctrl">
+        <label>Velocity rule</label>
+        <button class="es-toggle" id="t-vel">≥95% out within 7 days</button>
+        <div class="tiny-tag">in-and-out fast — a stronger pass-through signal</div>
+      </div>
+    </div>
+
+    <div class="readout" id="readout"></div>
+    <div class="vel-note hidden" id="vel-note"></div>
+  </div>
+
+  <div class="es-stat-grid section" style="margin-bottom:8px;">
+    <div class="es-stat"><div class="es-stat-value" id="s-recip">—</div><div class="es-stat-label">Withdrawal recipients</div></div>
+    <div class="es-stat"><div class="es-stat-value" id="s-exam">—</div><div class="es-stat-label">Addresses examined</div></div>
+    <div class="es-stat"><div class="es-stat-value" id="s-flagged">—</div><div class="es-stat-label">Consolidation points</div></div>
+    <div class="es-stat"><div class="es-stat-value" id="s-usd" style="color:var(--es-accent);">—</div><div class="es-stat-label">Total converged</div></div>
+  </div>
+  <div class="tiny-tag" style="text-align:center;display:block;margin-bottom:8px;">Illustrative figures — sample data, not a live query</div>
+
+  <!-- ===================== PATTERN LIBRARY ===================== -->
+  <div class="es-divider section" style="margin:36px 0 26px;"><span>Patterns we can build with you</span></div>
+
+  <div class="pat-grid section" style="margin-bottom:18px;">
+    <div class="es-card pat">
+      <div class="picon">🌀</div>
+      <div class="ptitle">Convergence</div>
+      <p>Many exchange withdrawals funnelling onto one wallet — the core two-hop signal shown above.</p>
+    </div>
+    <div class="es-card pat">
+      <div class="picon">⏱️</div>
+      <div class="ptitle">Rapid pass-through</div>
+      <p>Funds arrive and ≥95% leaves within a week. Money that doesn't rest is money being moved on, not held.</p>
+    </div>
+    <div class="es-card pat">
+      <div class="picon">🪜</div>
+      <div class="ptitle">Deeper layering</div>
+      <p>Three or four hops instead of two, to follow flows that take an extra step to shake off the trail.</p>
+    </div>
+    <div class="es-card pat">
+      <div class="picon">🔀</div>
+      <div class="ptitle">Fan-out, fan-in</div>
+      <p>One source sprays across many addresses, then everything reconverges — splitting to look clean, then regrouping.</p>
+    </div>
+  </div>
+
+  <!-- ===================== CLOSE ===================== -->
+  <div class="es-panel section" style="display:flex;gap:16px;align-items:flex-start;">
+    <div style="font-size:20px;margin-top:1px;">🤝</div>
+    <div>
+      <div class="es-label" style="margin-bottom:6px;">Built around your users</div>
+      <p style="font-size:14px;color:var(--es-text-soft);line-height:1.7;margin:0;">
+        The right thresholds depend on how your users actually transact. We co-design the hop depth, time windows
+        and velocity rules to fit your base — so what surfaces is worth an investigator's time, and the people most
+        likely to be hit again get protected first.
+      </p>
+    </div>
+  </div>
+
+  <div class="es-footer">Elliptic — Consolidation Detection · illustrative demo</div>
+</div>
+
+<script>
+(function(){
+  // ----------------------------------------------------------------- state --
+  const state = { step: 0, hops: 2, shared: 2, days: 30, vel: false };
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ------------------------------------------------------- address sampler --
+  function addr(seed){
+    const cs="qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+    let a="bc1q"; let s=seed*2654435761 >>> 0;
+    for(let i=0;i<2;i++){ a+=cs[s%32]; s=(s*1103515245+12345)>>>0; }
+    let b=""; for(let i=0;i<3;i++){ b+=cs[s%32]; s=(s*1103515245+12345)>>>0; }
+    return a+"…"+b;
+  }
+
+  // --------------------------------------------------------- diagram model --
+  const VW=900, VH=540, X0=90, X1=830, TOP=70, BOT=470;
+  function buildModel(hops){
+    const colX = i => X0 + (X1-X0)*(i/hops);
+    const ex = {id:'ex', x:colX(0), y:(TOP+BOT)/2, type:'ex', label:'Fidelity Digital Assets'};
+    const cols = [[ex]];
+    let seed = 7;
+    for(let c=1;c<=hops;c++){
+      const isCons = (c===hops);
+      const n = isCons ? 1 : 6;
+      const arr=[];
+      for(let k=0;k<n;k++){
+        const y = n===1 ? (TOP+BOT)/2 : TOP + (BOT-TOP)*(k/(n-1));
+        arr.push({id:'c'+c+'n'+k, x:colX(c), y, type:isCons?'cons':'hop', label:isCons?'bclqqs…uuy':addr(seed++), col:c});
+      }
+      cols.push(arr);
+    }
+    const edges=[];
+    cols[1].forEach(n=> edges.push({a:ex, b:n, seg:'e-ex'}));
+    for(let c=1;c<hops;c++){
+      const cur=cols[c], nxt=cols[c+1], last=(c+1===hops);
+      if(last){ cur.forEach(n=> edges.push({a:n, b:nxt[0], seg:'e-cons'})); }
+      else cur.forEach((n,i)=>{
+        edges.push({a:n, b:nxt[i%nxt.length], seg:'e-mid'});
+        edges.push({a:n, b:nxt[(i+2)%nxt.length], seg:'e-mid'});
+      });
+    }
+    return {ex, cols, edges, nodes: cols.flat()};
+  }
+
+  // --------------------------------------------------------- render diagram --
+  function renderDiagram(){
+    const m = buildModel(state.hops);
+    const amts=['955.0','950.9','925.9','953.4','976.8','834.9'];
+    let s = '<svg class="diagram-svg" viewBox="0 0 '+VW+' '+VH+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Funds flowing from an exchange across withdrawal addresses and converging on a consolidation point.">';
+    s += '<defs><marker id="arw" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">'
+       + '<path d="M0,0 L7,3 L0,6 Z" fill="var(--es-text-fainter)"/></marker></defs>';
+
+    // edges
+    m.edges.forEach((e,i)=>{
+      const id='ed'+i;
+      s += '<path id="'+id+'" class="es-edge '+e.seg+'" data-seg="'+e.seg+'" marker-end="url(#arw)" '
+         + 'd="M '+e.a.x.toFixed(1)+' '+e.a.y.toFixed(1)+' L '+e.b.x.toFixed(1)+' '+e.b.y.toFixed(1)+'"/>';
+    });
+    // amount labels on exchange->hop1 edges (first few)
+    if(state.hops>=2){
+      m.cols[1].forEach((n,i)=>{
+        if(i<amts.length){
+          const mx=(m.ex.x+n.x)/2, my=(m.ex.y+n.y)/2-3;
+          s += '<text class="edge-amt" x="'+mx.toFixed(1)+'" y="'+my.toFixed(1)+'">'+amts[i]+' USD</text>';
+        }
+      });
+    }
+    // flow dots along converging edges (the signal)
+    if(!reduce){
+      m.edges.filter(e=>e.seg==='e-cons').forEach((e,i)=>{
+        const id='ed'+m.edges.indexOf(e);
+        s += '<circle class="flow-dot" r="2.6"><animateMotion dur="2.4s" begin="'+(i*0.32)+'s" repeatCount="indefinite">'
+           + '<mpath href="#'+id+'"/></animateMotion></circle>';
+      });
+    }
+    // nodes
+    m.nodes.forEach(n=>{
+      if(n.type==='ex'){
+        s += '<circle class="nd nd-ex" data-type="ex" cx="'+n.x+'" cy="'+n.y+'" r="11"/>';
+        s += '<text class="node-label lead" x="'+n.x+'" y="'+(n.y+26)+'" text-anchor="middle">'+n.label+'</text>';
+      } else if(n.type==='cons'){
+        s += '<g class="node-glow"><rect class="node-cons-box" x="'+(n.x-11)+'" y="'+(n.y-11)+'" width="22" height="22" rx="3" transform="rotate(45 '+n.x+' '+n.y+')"/>'
+           + '<circle class="node-cons-dot" cx="'+n.x+'" cy="'+n.y+'" r="3.5"/></g>';
+        s += '<text class="node-label cons" x="'+n.x+'" y="'+(n.y+28)+'" text-anchor="middle">'+n.label+'</text>';
+      } else {
+        s += '<rect class="nd" data-type="hop" data-col="'+n.col+'" x="'+(n.x-8)+'" y="'+(n.y-8)+'" width="16" height="16" rx="2.5" transform="rotate(45 '+n.x+' '+n.y+')"/>';
+        s += '<circle class="nd" data-type="hop" data-col="'+n.col+'" cx="'+n.x+'" cy="'+n.y+'" r="2"/>';
+        s += '<text class="node-label" x="'+n.x+'" y="'+(n.y+22)+'" text-anchor="middle">'+n.label+'</text>';
+      }
+    });
+    s += '</svg>';
+    document.getElementById('diagram').innerHTML = s;
+    applyStep();
+  }
+
+  // --------------------------------------------------------- step controls --
+  const STEPS = [
+    {t:'Resolve the exchange', b:'We match the exchange name exactly to its entity in Elliptic\u2019s data — an exact match, so a scam look-alike with a similar name can\u2019t sneak in.'},
+    {t:'Hop 1 — withdrawal recipients', b:'Every address the exchange paid out to in the window, keeping only unidentified wallets. We note when each first received — that timestamp anchors everything downstream.'},
+    {t:'Trace onward', b:'From each withdrawal address we follow funds forward — counting only transfers that happened after the exchange funded it. Two hops by default; more if you widen the lens.'},
+    {t:'Consolidation — the signal', b:'Wallets fed by several withdrawal flows at once. Funds from many exchange payouts converging on one address is the scam / mule signature worth investigating.'}
+  ];
+  function applyStep(){
+    const svg = document.querySelector('#diagram svg'); if(!svg) return;
+    svg.querySelectorAll('.on').forEach(el=>el.classList.remove('on'));
+    const edges = svg.querySelectorAll('[data-seg]');
+    const onSeg = segs => edges.forEach(e=>{ if(segs.includes(e.dataset.seg)) e.classList.add('on'); });
+    const onNode = sel => svg.querySelectorAll(sel).forEach(n=>n.classList.add('on'));
+    switch(state.step){
+      case 0: onNode('.nd-ex'); break;
+      case 1: onSeg(['e-ex']); onNode('[data-col="1"]'); break;
+      case 2: onSeg(['e-mid','e-cons']); onNode('[data-type="hop"]'); break;
+      case 3: onSeg(['e-cons']); break; // cons node always amber + dots flowing
+    }
+    const sb = document.getElementById('step-body');
+    sb.innerHTML = '<span class="es-label">'+STEPS[state.step].t+'</span><p>'+STEPS[state.step].b+'</p>';
+    document.querySelectorAll('#steps .es-chip').forEach(c=>
+      c.classList.toggle('active', +c.dataset.step===state.step));
+  }
+
+  // -------------------------------------------------------------- stats ------
+  function fmtUSD(n){ if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+Math.round(n/1e3)+'K'; return '$'+Math.round(n); }
+  function num(n){ return n.toLocaleString('en-US'); }
+  function renderStats(){
+    const d=state.days, sh=state.shared, h=state.hops;
+    const recip = Math.round(3800 * d/30);
+    const exam  = Math.round(recip * (1 + 1.7*(h-1)));
+    let flagged = Math.max(1, Math.round((2/sh) * (d/30) * 48 * (1 + 0.25*(h-2))));
+    const usd   = flagged * 42000;
+    const velHits = Math.round(flagged * 0.36);
+
+    document.getElementById('s-recip').textContent  = num(recip);
+    document.getElementById('s-exam').textContent   = num(exam);
+    document.getElementById('s-flagged').textContent= num(flagged);
+    document.getElementById('s-usd').textContent    = fmtUSD(usd);
+
+    const ro = document.getElementById('readout');
+    ro.innerHTML = '▸ tracing <span class="amber">'+h+' hops</span> · '
+      + '<span class="amber">'+d+'-day</span> window · '
+      + '≥<span class="amber">'+sh+'</span> converging sources'
+      + (state.vel ? ' · <span class="amber">velocity ≥95% / 7d</span>' : '');
+
+    const vn = document.getElementById('vel-note');
+    if(state.vel){
+      vn.classList.remove('hidden');
+      vn.innerHTML = 'Of '+num(flagged)+' consolidation points, <b style="color:var(--es-accent)">'+num(velHits)
+        +'</b> also moved ≥95% of inbound funds back out within 7 days — the highest-confidence pass-through subset to investigate first.';
+    } else vn.classList.add('hidden');
+  }
+
+  // ----------------------------------------------------------------- wire ----
+  document.getElementById('steps').addEventListener('click', e=>{
+    const b=e.target.closest('[data-step]'); if(!b) return;
+    state.step=+b.dataset.step; applyStep();
+  });
+  document.getElementById('hop-set').addEventListener('click', e=>{
+    const b=e.target.closest('[data-hops]'); if(!b) return;
+    state.hops=+b.dataset.hops;
+    document.querySelectorAll('#hop-set .es-chip').forEach(c=>c.classList.toggle('active', c===b));
+    document.getElementById('v-hops').textContent=state.hops;
+    renderDiagram(); renderStats();
+  });
+  const rShared=document.getElementById('r-shared');
+  rShared.addEventListener('input', ()=>{ state.shared=+rShared.value;
+    document.getElementById('v-shared').textContent=state.shared; renderStats(); });
+  const rDays=document.getElementById('r-days');
+  rDays.addEventListener('input', ()=>{ state.days=+rDays.value;
+    document.getElementById('v-days').textContent=state.days+' days'; renderStats(); });
+  document.getElementById('t-vel').addEventListener('click', e=>{
+    state.vel=!state.vel; e.target.classList.toggle('on', state.vel);
+    e.target.textContent = state.vel ? '✓ ≥95% out within 7 days' : '≥95% out within 7 days';
+    renderStats();
+  });
+
+  // ------------------------------------------------------------- init --------
+  renderDiagram();
+  renderStats();
+})();
+</script>
+</body>
+</html>
