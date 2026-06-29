@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUIDL Asset DD Dashboard</title>
+<style>
+:root {
+  --bg: #eef0f3;
+  --card: #ffffff;
+  --border: #dfe3e8;
+  --border-soft: #e9ecf0;
+  --ink: #16191f;
+  --ink-2: #232f3e;
+  --muted: #5a6573;
+  --muted-2: #8b94a0;
+  --accent: #2e6788;       /* slate blue */
+  --accent-2: #a7d8ec;     /* sky blue */
+  --accent-3: #e2933a;     /* orange */
+  --hi-row: #d6eef9;       /* highlighted total row */
+  --onchain-bg: #e3f3e8;   --onchain-fg: #1e7a3d;  --onchain-line: #2e9e54;
+  --kyc-bg: #fbeedd;       --kyc-fg: #9a5b0a;      --kyc-line: #e0922b;
+  --radius: 6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Amazon Ember", -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 13px; background: var(--bg); color: var(--ink); padding: 18px; }
+.db { display: flex; flex-direction: column; gap: 12px; max-width: 1240px; margin: 0 auto; }
+
+/* TOP BAR */
+.top-bar { display: grid; grid-template-columns: 150px 1fr 1fr 1fr 1fr; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--card); }
+.top-bar-logo { display: flex; align-items: center; justify-content: center; padding: 20px; border-right: 1px solid var(--border); }
+.buidl { width: 66px; height: 66px; border-radius: 50%; background: var(--ink-2); display: flex; align-items: center; justify-content: center; }
+.buidl span { color: #fff; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; }
+.kpi { padding: 18px 22px 16px; border-right: 1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between; min-height: 118px; }
+.kpi:last-child { border-right: none; }
+.kpi-label { font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+.kpi-value { font-size: 44px; font-weight: 700; letter-spacing: -1.5px; line-height: 1; flex: 1; display: flex; align-items: center; color: var(--ink); }
+.kpi-note { font-size: 10px; color: var(--muted-2); margin-top: 8px; }
+
+/* TABS */
+.tab-bar { display: flex; background: var(--card); border-radius: var(--radius) var(--radius) 0 0; border: 1px solid var(--border); overflow: hidden; }
+.tab-btn { padding: 11px 18px; font-size: 12.5px; font-weight: 500; color: var(--muted); cursor: pointer; border: none; background: transparent; border-bottom: 2px solid transparent; white-space: nowrap; font-family: inherit; }
+.tab-btn:hover { color: var(--ink); background: #f4f6f8; }
+.tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: var(--card); font-weight: 600; }
+.tab-content-wrap { background: var(--card); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); }
+
+/* PRIMARY (top-level) TABS */
+.primary-tab-bar { display: flex; gap: 8px; margin-bottom: 14px; }
+.primary-tab { padding: 10px 22px; font-size: 14px; font-weight: 600; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--muted); cursor: pointer; font-family: inherit; }
+.primary-tab:hover { color: var(--ink); background: #f4f6f8; }
+.primary-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.primary-pane { display: none; }
+.primary-pane.active { display: block; }
+.bc-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+.bc-intro { font-size: 12.5px; color: var(--muted); line-height: 1.55; max-width: 920px; margin-bottom: 2px; }
+.tab-pane { display: none; padding: 18px; }
+.tab-pane.active { display: block; }
+
+/* SHARED */
+.section-divider { border: none; border-top: 1px solid var(--border); margin: 22px 0; }
+.section-label { font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* DATA PROVENANCE */
+.src { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.2px; white-space: nowrap; }
+.src::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.src-onchain { background: var(--onchain-bg); color: var(--onchain-fg); }
+.src-onchain::before { background: var(--onchain-line); }
+.src-kyc { background: var(--kyc-bg); color: var(--kyc-fg); }
+.src-kyc::before { background: var(--kyc-line); }
+.provenance-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 11px 16px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); font-size: 11.5px; color: var(--muted); }
+.provenance-legend .legend-title { font-weight: 600; color: var(--ink-2); }
+.provenance-legend .legend-item { display: flex; align-items: center; gap: 7px; }
+.provenance-legend .legend-item small { color: var(--muted-2); }
+.source-note { display: flex; gap: 11px; align-items: flex-start; padding: 11px 14px; border-radius: var(--radius); background: #f7f8fa; border: 1px solid var(--border-soft); border-left: 3px solid var(--muted-2); margin-top: 14px; font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+.source-note.onchain { border-left-color: var(--onchain-line); }
+.source-note.kyc { border-left-color: var(--kyc-line); }
+.source-note .src { margin-top: 1px; }
+.source-note b { color: var(--ink-2); font-weight: 600; }
+.footnote { font-size: 10.5px; color: var(--muted-2); margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border-soft); line-height: 1.5; }
+.side-note { background: #f7f8fa; border: 1px solid var(--border-soft); border-left: 3px solid var(--muted-2); border-radius: var(--radius); padding: 11px 14px; margin-top: 14px; font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+.side-note b { color: var(--ink-2); font-weight: 600; }
+.tab-intro { font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border-soft); }
+.tab-intro b { color: var(--ink-2); font-weight: 600; }
+
+/* CONTROLS FILTER PANEL */
+.controls-panel { background: #f7f8fa; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 18px; overflow: hidden; }
+.controls-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 18px; cursor: pointer; user-select: none; }
+.controls-head-left { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; min-width: 0; }
+.controls-title { font-size: 15px; color: var(--ink-2); font-weight: 500; white-space: nowrap; }
+.controls-summary { display: none; gap: 22px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted-2); }
+.controls-summary span { white-space: nowrap; }
+.controls-summary b { color: var(--ink-2); font-weight: 600; margin-right: 6px; }
+.controls-chevron { font-size: 12px; color: var(--muted); transition: transform 0.2s; flex-shrink: 0; }
+.controls-body { padding: 4px 18px 20px; display: flex; flex-direction: column; gap: 20px; }
+.controls-panel.collapsed .controls-body { display: none; }
+.controls-panel.collapsed .controls-summary { display: flex; }
+.controls-panel.collapsed .controls-chevron { transform: rotate(180deg); }
+.filter-row { display: grid; gap: 18px 20px; }
+.filter-row.r1 { grid-template-columns: repeat(4, 1fr); }
+.filter-row.r2 { grid-template-columns: repeat(5, 1fr); }
+.filter-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.filter-field > label { font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.filter-control { position: relative; }
+.filter-input, .filter-select { width: 100%; font-family: inherit; font-size: 13px; color: var(--ink); background: #fff; border: 1px solid #d5dbe0; border-radius: 3px; padding: 0 10px; height: 36px; }
+.filter-input:focus, .filter-select:focus { outline: none; border-color: var(--accent); }
+.filter-select { appearance: none; -webkit-appearance: none; padding-right: 28px; cursor: pointer; }
+.filter-control .chev { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--muted); pointer-events: none; }
+.filter-control .cal { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--muted); pointer-events: none; }
+.filter-input::placeholder { color: var(--muted-2); }
+.date-pair { display: flex; align-items: flex-start; gap: 8px; }
+.date-cell { flex: 1; min-width: 0; }
+.date-dash { line-height: 36px; color: var(--muted); }
+.date-hint { font-size: 10.5px; color: var(--muted-2); margin-top: 4px; }
+.info-ic { font-size: 9px; color: var(--muted-2); border: 1px solid var(--muted-2); border-radius: 50%; width: 13px; height: 13px; display: inline-flex; align-items: center; justify-content: center; font-style: italic; }
+@media (max-width: 900px) {
+  .filter-row.r1, .filter-row.r2 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 540px) {
+  .filter-row.r1, .filter-row.r2 { grid-template-columns: 1fr; }
+}
+
+/* MINI KPIS */
+.mini-kpi-row { display: grid; gap: 12px; margin-bottom: 18px; }
+.mini-kpi-row.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+.mini-kpi-row.cols4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.mini-kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.mini-kpi-label { font-size: 12px; color: var(--ink-2); margin-bottom: 6px; }
+.mini-kpi-value { font-size: 30px; font-weight: 700; letter-spacing: -1px; color: var(--ink); line-height: 1; }
+.mini-kpi-sub { font-size: 10.5px; color: var(--muted-2); margin-top: 6px; }
+
+/* GENERIC TABLE */
+.data-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.data-table th { padding: 8px 10px; text-align: left; font-size: 10.5px; font-weight: 700; color: var(--ink-2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.data-table td { padding: 8px 10px; border-bottom: 1px solid var(--border-soft); color: var(--ink); }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: #f4f6f8; }
+.mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 10px; color: var(--muted); }
+
+/* RISK BADGES */
+.risk { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.risk-low { background: var(--onchain-bg); color: var(--onchain-fg); }
+.risk-med { background: var(--kyc-bg); color: var(--kyc-fg); }
+.risk-high { background: #fcebeb; color: #a32d2d; }
+.entity-tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.tag-br { background: #e1eef6; color: var(--accent); }
+.tag-sec { background: #fbeedd; color: var(--kyc-fg); }
+.tag-unk { background: #eef0f3; color: var(--muted); }
+.tag-neutral { background: #eef0f3; color: var(--muted); }
+.flag-cell { font-size: 11px; color: var(--muted); }
+.flag-warn { color: var(--kyc-fg); font-weight: 600; }
+
+/* CLUSTER SWITCHER */
+.cluster-switcher { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.cluster-btn { padding: 6px 13px; font-size: 11px; border: 1px solid var(--border); border-radius: 4px; background: var(--card); color: var(--muted); cursor: pointer; white-space: nowrap; font-family: inherit; }
+.cluster-btn:hover { background: #f4f6f8; color: var(--ink); }
+.cluster-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.cluster-btn.add-btn { border-style: dashed; }
+
+/* GROUP BY TOGGLE */
+.group-toggle { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.group-toggle-label { font-size: 11px; color: var(--muted); }
+.toggle-opts { display: flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.toggle-opt { padding: 6px 12px; font-size: 11px; cursor: pointer; border: none; background: var(--card); color: var(--muted); font-family: inherit; }
+.toggle-opt:hover { background: #f4f6f8; }
+.toggle-opt.active { background: var(--accent); color: #fff; font-weight: 600; }
+
+/* ROLLUP CARDS */
+.rollup-cards { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.rollup-card { display: grid; align-items: center; padding: 13px 15px; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); }
+.rollup-card.cols5 { grid-template-columns: 2fr 76px 92px 92px 168px; }
+.rollup-name { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.rollup-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.rollup-cell { font-size: 12px; color: var(--ink); }
+.flow-pos { color: var(--onchain-fg); font-weight: 600; }
+.flow-neg { color: #a32d2d; font-weight: 600; }
+
+/* CHARTS */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.chart-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.chart-card-title { font-size: 12.5px; font-weight: 600; margin-bottom: 12px; color: var(--ink-2); }
+.cat-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 6px; }
+.cat-legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--muted); }
+.cat-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+
+/* TX TABLE */
+.tx-title { font-size: 16px; font-weight: 700; color: var(--ink-2); padding: 8px 0 16px; }
+table.tx { width: 100%; border-collapse: collapse; font-size: 11px; }
+table.tx th { padding: 9px 10px; text-align: left; font-size: 10.5px; font-weight: 700; color: var(--ink-2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+table.tx td { padding: 7px 10px; border-bottom: 1px solid var(--border-soft); white-space: nowrap; color: var(--ink); }
+table.tx tr:last-child td { border-bottom: none; }
+table.tx tr:hover td { background: #f4f6f8; }
+
+/* HOLDER TABLE */
+.holder-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.holder-table th { padding: 12px 14px; text-align: left; font-size: 12.5px; font-weight: 700; color: var(--ink-2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.holder-table td { padding: 13px 14px; border-bottom: 1px solid var(--border-soft); color: var(--ink); }
+.holder-table tr:last-child td { border-bottom: none; }
+.holder-table tr:hover td { background: #f7f8fa; }
+.holder-table .mono { font-size: 12px; }
+.rank-badge { display: inline-flex; width: 20px; height: 20px; border-radius: 4px; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; }
+.rank-1 { background: var(--kyc-bg); color: var(--kyc-fg); }
+.rank-2 { background: #f1efe8; color: #5f5e5a; }
+.rank-3 { background: #faece7; color: #993c1d; }
+.rank-n { background: #eef0f3; color: var(--muted); }
+
+/* DRILL TABLE */
+.drill-section { margin-top: 4px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.drill-header { padding: 11px 15px; background: #f4f6f8; border-bottom: 1px solid var(--border); font-size: 11.5px; font-weight: 600; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+</style>
+</head>
+<body>
+<div class="db">
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="top-bar-logo"><div class="buidl"><span>BUIDL</span></div></div>
+  <div class="kpi">
+    <div class="kpi-label">Number of Transactions</div>
+    <div class="kpi-value">53</div>
+    <div class="kpi-note"><span class="src src-onchain">On-chain</span></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Number of Holders</div>
+    <div class="kpi-value">312</div>
+    <div class="kpi-note"><span class="src src-onchain">On-chain</span></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Total Supply &amp; Issuance</div>
+    <div class="kpi-value" style="font-size:34px;">$602.4M</div>
+    <div class="kpi-note"><span class="src src-onchain">On-chain</span></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Value Transferred</div>
+    <div class="kpi-value">$67.92M</div>
+    <div class="kpi-note"><span class="src src-onchain">On-chain</span></div>
+  </div>
+</div>
+
+<!-- DATA PROVENANCE LEGEND -->
+<div class="provenance-legend">
+  <span class="legend-title">Data provenance</span>
+  <span class="legend-item"><span class="src src-onchain">On-chain</span> <small>Available now — pull directly from Ethereum / Etherscan</small></span>
+  <span class="legend-item"><span class="src src-kyc">KYC / off-chain</span> <small>Must source — requires Securitize investor &amp; KYC data</small></span>
+</div>
+
+<!-- PRIMARY TABS -->
+<div class="primary-tab-bar">
+  <button class="primary-tab active" onclick="switchPrimary('asset',this)">Asset Due Diligence</button>
+  <button class="primary-tab" onclick="switchPrimary('blockchain',this)">Blockchain Due Diligence</button>
+</div>
+
+<div class="primary-pane active" id="primary-asset">
+<!-- TAB BAR -->
+<div style="display:flex;flex-direction:column;">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('holders',this)">Holder &amp; Concentration</button>
+    <button class="tab-btn" onclick="switchTab('transactions',this)">Transactions</button>
+    <button class="tab-btn" onclick="switchTab('clusters',this)">Clusters &amp; Controls</button>
+  </div>
+
+  <div class="tab-content-wrap">
+
+    <!-- TAB 1: Holder & Concentration -->
+    <div class="tab-pane active" id="tab-holders">
+      <div class="mini-kpi-row cols3">
+        <div class="mini-kpi">
+          <div class="mini-kpi-label">Top-10 holders — % of supply</div>
+          <div class="mini-kpi-value">74.3%</div>
+          <div class="mini-kpi-sub">10 wallets · $447.8M of $602.4M</div>
+        </div>
+        <div class="mini-kpi">
+          <div class="mini-kpi-label">Top-50 holders — % of supply</div>
+          <div class="mini-kpi-value">96.1%</div>
+          <div class="mini-kpi-sub">50 wallets · $579.1M of $602.4M</div>
+        </div>
+        <div class="mini-kpi">
+          <div class="mini-kpi-label">Remaining holders</div>
+          <div class="mini-kpi-value">262</div>
+          <div class="mini-kpi-sub">3.9% of supply · $23.3M combined</div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div>
+          <div class="section-label">Top 10 holders by % of supply</div>
+          <div id="barChart"></div>
+        </div>
+        <div>
+          <div class="section-label">Supply distribution</div>
+          <svg width="100%" height="200" viewBox="0 0 300 200">
+            <circle cx="90" cy="100" r="58" fill="none" stroke="#eef0f3" stroke-width="26"/>
+            <circle cx="90" cy="100" r="58" fill="none" stroke="#aadcec" stroke-width="26" stroke-dasharray="270.8 93.7" stroke-dashoffset="0" transform="rotate(-90 90 100)"/>
+            <circle cx="90" cy="100" r="58" fill="none" stroke="#1f5f7a" stroke-width="26" stroke-dasharray="79.4 285.0" stroke-dashoffset="-270.8" transform="rotate(-90 90 100)"/>
+            <circle cx="90" cy="100" r="58" fill="none" stroke="#f5a142" stroke-width="26" stroke-dasharray="14.2 350.2" stroke-dashoffset="-350.2" transform="rotate(-90 90 100)"/>
+            <text x="90" y="97" text-anchor="middle" font-size="20" font-weight="700" fill="#16191f">312</text>
+            <text x="90" y="113" text-anchor="middle" font-size="10" fill="#5a6573">holders</text>
+            <rect x="190" y="58" width="10" height="10" rx="2" fill="#aadcec"/>
+            <text x="208" y="63" font-size="10.5" fill="#5a6573">Top 10</text>
+            <text x="208" y="78" font-size="12" font-weight="700" fill="#16191f">74.3%</text>
+            <rect x="190" y="98" width="10" height="10" rx="2" fill="#1f5f7a"/>
+            <text x="208" y="103" font-size="10.5" fill="#5a6573">11–50</text>
+            <text x="208" y="118" font-size="12" font-weight="700" fill="#16191f">21.8%</text>
+            <rect x="190" y="138" width="10" height="10" rx="2" fill="#f5a142"/>
+            <text x="208" y="143" font-size="10.5" fill="#5a6573">Rest</text>
+            <text x="208" y="158" font-size="12" font-weight="700" fill="#16191f">3.9%</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-bottom:8px;">Holder detail — top 10</div>
+      <div style="overflow-x:auto;">
+        <table class="holder-table">
+          <thead>
+            <tr>
+              <th style="width:44px;">Rank</th>
+              <th>Wallet address</th>
+              <th>Entity / Label</th>
+              <th style="text-align:right;">Balance (BUIDL)</th>
+              <th style="text-align:right;">% of supply</th>
+              <th style="width:140px;">Risk score</th>
+            </tr>
+          </thead>
+          <tbody id="holderTbody"></tbody>
+        </table>
+      </div>
+      <div class="source-note" style="display:block;">
+        <div style="display:flex;gap:9px;"><span style="color:var(--muted-2);">•</span><div>Several wallets above are unlabelled because their real-world identity isn't visible on-chain. Sourcing KYC / off-chain data from Securitize would let us attach verified identity labels to these addresses.</div></div>
+        <div style="display:flex;gap:9px;margin-top:9px;"><span style="color:var(--muted-2);">•</span><div>Depending on whether we need instant data or historical data of asset holders, this could be a bigger lift — if it's instant data, that's straightforward and can be done very simply.</div></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Transactions -->
+    <div class="tab-pane" id="tab-transactions">
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-card-title">Value (USD) Transferred Over Time</div>
+          <svg width="100%" height="190" viewBox="0 0 540 190">
+            <line x1="50" y1="10" x2="50" y2="155" stroke="#e0e0e0" stroke-width="0.5"/>
+            <line x1="50" y1="155" x2="525" y2="155" stroke="#e0e0e0" stroke-width="0.5"/>
+            <line x1="50" y1="10" x2="525" y2="10" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,3"/>
+            <line x1="50" y1="55" x2="525" y2="55" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,3"/>
+            <line x1="50" y1="100" x2="525" y2="100" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,3"/>
+            <text x="44" y="13" text-anchor="end" font-size="9" fill="#666">$30M</text>
+            <text x="44" y="58" text-anchor="end" font-size="9" fill="#666">$25M</text>
+            <text x="44" y="103" text-anchor="end" font-size="9" fill="#666">$20M</text>
+            <text x="20" y="90" text-anchor="middle" font-size="9" fill="#666" transform="rotate(-90,20,90)">USD sent</text>
+            <polyline points="85,132 175,152 265,147 355,137 445,12 525,58" fill="none" stroke="#2e6788" stroke-width="1.5"/>
+            <circle cx="85" cy="132" r="3" fill="#2e6788"/>
+            <circle cx="175" cy="152" r="3" fill="#2e6788"/>
+            <circle cx="265" cy="147" r="3" fill="#2e6788"/>
+            <circle cx="355" cy="137" r="3" fill="#2e6788"/>
+            <circle cx="445" cy="12" r="3" fill="#2e6788"/>
+            <circle cx="525" cy="58" r="3" fill="#2e6788"/>
+            <text x="85" y="127" text-anchor="middle" font-size="9" fill="#666">$8.84M</text>
+            <text x="445" y="9" text-anchor="middle" font-size="9" fill="#666">$29.41M</text>
+            <text x="525" y="53" text-anchor="middle" font-size="9" fill="#666">$19.41M</text>
+          </svg>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Number of Transactions Over Time</div>
+          <svg width="100%" height="190" viewBox="0 0 540 190">
+            <line x1="50" y1="10" x2="50" y2="155" stroke="#e0e0e0" stroke-width="0.5"/>
+            <line x1="50" y1="155" x2="525" y2="155" stroke="#e0e0e0" stroke-width="0.5"/>
+            <line x1="50" y1="10" x2="525" y2="10" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,3"/>
+            <line x1="50" y1="55" x2="525" y2="55" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,3"/>
+            <line x1="50" y1="100" x2="525" y2="100" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,3"/>
+            <text x="44" y="13" text-anchor="end" font-size="9" fill="#666">18</text>
+            <text x="44" y="58" text-anchor="end" font-size="9" fill="#666">15</text>
+            <text x="44" y="103" text-anchor="end" font-size="9" fill="#666">12</text>
+            <text x="44" y="140" text-anchor="end" font-size="9" fill="#666">9</text>
+            <text x="44" y="158" text-anchor="end" font-size="9" fill="#666">3</text>
+            <text x="18" y="90" text-anchor="middle" font-size="9" fill="#666" transform="rotate(-90,18,90)">Txns</text>
+            <polyline points="85,112 175,130 265,52 355,10 445,150 525,74" fill="none" stroke="#2e6788" stroke-width="1.5"/>
+            <circle cx="85" cy="112" r="3" fill="#2e6788"/>
+            <circle cx="175" cy="130" r="3" fill="#2e6788"/>
+            <circle cx="265" cy="52" r="3" fill="#2e6788"/>
+            <circle cx="355" cy="10" r="3" fill="#2e6788"/>
+            <circle cx="445" cy="150" r="3" fill="#2e6788"/>
+            <circle cx="525" cy="74" r="3" fill="#2e6788"/>
+            <text x="355" y="7" text-anchor="middle" font-size="9" fill="#666">16</text>
+            <text x="265" y="47" text-anchor="middle" font-size="9" fill="#666">15</text>
+            <text x="525" y="69" text-anchor="middle" font-size="9" fill="#666">11</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-card-title">Amount Sent By Category Over Time</div>
+          <div class="cat-legend" id="catLegendSent"></div>
+          <div id="sentChart"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Amount Received By Category Over Time</div>
+          <div class="cat-legend" id="catLegendRecv"></div>
+          <div id="recvChart"></div>
+        </div>
+      </div>
+
+      <div class="tx-title">Transaction Explorer</div>
+      <div style="overflow-x:auto; margin-bottom:20px;">
+        <table class="tx">
+          <thead><tr>
+            <th>amount</th><th>transactionId</th><th>asset</th><th>blockchain</th><th>date</th>
+            <th>fromEntity</th><th>fromCategory</th><th>fromAddress</th>
+            <th>toEntity</th><th>toCategory</th><th>toAddress</th>
+          </tr></thead>
+          <tbody id="txBody"></tbody>
+        </table>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="section-label">P2P activity monitoring <span style="font-weight:400;color:var(--muted-2);font-size:11.5px;">(not necessarily needed by BlackRock)</span></div>
+      <div class="mini-kpi-row cols3" style="margin-bottom:16px;">
+        <div class="mini-kpi">
+          <div class="mini-kpi-label">🔁 P2P transfers (30d)</div>
+          <div class="mini-kpi-value">148</div>
+          <div class="mini-kpi-sub">Whitelisted wallet-to-wallet</div>
+        </div>
+        <div class="mini-kpi">
+          <div class="mini-kpi-label">💸 P2P volume (30d)</div>
+          <div class="mini-kpi-value">$94M</div>
+          <div class="mini-kpi-sub">ERC-20 transfer events</div>
+        </div>
+        <div class="mini-kpi">
+          <div class="mini-kpi-label">🚩 Anomalies flagged</div>
+          <div class="mini-kpi-value" style="color:#854f0b;">2</div>
+          <div class="mini-kpi-sub">Unusual patterns detected</div>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-bottom:8px; font-size:11px; color:#666;">Recent wallet-to-wallet transfers</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th><th>From</th><th>To</th><th style="text-align:right;">Amount</th><th>Flag</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2026-06-02</td>
+            <td class="mono">0x9c…b1 <span style="color:#aaa;font-size:10px;">(Treasury)</span></td>
+            <td class="mono">0x4f…7d <span style="color:#aaa;font-size:10px;">(Distributor A)</span></td>
+            <td style="text-align:right;font-weight:500;">$12M</td>
+            <td class="flag-cell">—</td>
+          </tr>
+          <tr>
+            <td>2026-06-01</td>
+            <td class="mono">0x22…aa <span style="color:#aaa;font-size:10px;">(Holder)</span></td>
+            <td class="mono">0x88…3e <span style="color:#aaa;font-size:10px;">(Holder)</span></td>
+            <td style="text-align:right;font-weight:500;">$30M</td>
+            <td class="flag-cell flag-warn">🚩 Large new-pair</td>
+          </tr>
+          <tr>
+            <td>2026-05-30</td>
+            <td class="mono">0x4f…7d <span style="color:#aaa;font-size:10px;">(Distributor A)</span></td>
+            <td class="mono">0x10…c2 <span style="color:#aaa;font-size:10px;">(Holder)</span></td>
+            <td style="text-align:right;font-weight:500;">$5M</td>
+            <td class="flag-cell">—</td>
+          </tr>
+          <tr>
+            <td>2026-05-28</td>
+            <td class="mono">0x44…e2 <span style="color:#aaa;font-size:10px;">(Operations)</span></td>
+            <td class="mono">0x88…3e <span style="color:#aaa;font-size:10px;">(Holder)</span></td>
+            <td style="text-align:right;font-weight:500;">$8M</td>
+            <td class="flag-cell flag-warn">🚩 High velocity</td>
+          </tr>
+          <tr>
+            <td>2026-05-25</td>
+            <td class="mono">0x9c…b1 <span style="color:#aaa;font-size:10px;">(Treasury)</span></td>
+            <td class="mono">0x31…f4 <span style="color:#aaa;font-size:10px;">(Distributor B)</span></td>
+            <td style="text-align:right;font-weight:500;">$18M</td>
+            <td class="flag-cell">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="footnote">* On-chain / public, not proprietary — every transfer is a readable ERC-20 event. Only the KYC identity behind each wallet is proprietary to Securitize.</div>
+    </div>
+
+    <!-- TAB 3: Clusters & Controls -->
+    <div class="tab-pane" id="tab-clusters">
+
+
+      <div class="tab-intro"><b>The more involved parts of the build</b> — the clustering capability and the compliance event log. Both are very doable: nearly everything here is already on-chain, so the lift is mostly tooling rather than sourcing data.</div>
+
+      <div class="controls-panel">
+        <div class="controls-head" style="cursor:default;">
+          <span class="controls-title">Custom cluster view</span>
+        </div>
+        <div class="controls-body">
+          <div class="filter-row" style="grid-template-columns:repeat(4,1fr);">
+            <div class="filter-field">
+              <label>Cluster</label>
+              <div class="filter-control">
+                <select class="filter-select" onchange="setCluster(this.value)">
+                  <option value="all">All BUIDL</option>
+                  <option value="issuer">Issuer &amp; Treasury</option>
+                  <option value="dist">Distributors</option>
+                  <option value="counter">Counterparties</option>
+                  <option value="holders">Holders (all)</option>
+                </select>
+                <span class="chev">▾</span>
+              </div>
+            </div>
+            <div class="filter-field">
+              <label>Group by</label>
+              <div class="filter-control">
+                <select class="filter-select" onchange="setGroup(this.value)">
+                  <option value="category">By category</option>
+                  <option value="entity">By entity</option>
+                </select>
+                <span class="chev">▾</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rollup-cards" id="rollupCards"></div>
+
+      <div class="drill-section">
+        <div class="drill-header">Wallet detail — <span id="drillLabel">All wallets</span></div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Wallet</th>
+              <th style="text-align:right;">Balance</th>
+              <th style="text-align:right;">% supply</th>
+              <th>Label</th>
+            </tr>
+          </thead>
+          <tbody id="drillBody">
+            <tr><td class="mono">0x7a…3f</td><td style="text-align:right;font-weight:500;">$610M</td><td style="text-align:right;">28%</td><td><span class="entity-tag tag-br">Mint / Redeem</span></td></tr>
+            <tr><td class="mono">0x9c…b1</td><td style="text-align:right;font-weight:500;">$120M</td><td style="text-align:right;">6%</td><td><span class="entity-tag tag-br">Treasury</span></td></tr>
+            <tr><td class="mono">0x44…e2</td><td style="text-align:right;font-weight:500;">$82M</td><td style="text-align:right;">4%</td><td><span class="entity-tag tag-br">Operations</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="side-note"><b>Tooling, not data</b> — the wallet/transfer data is on-chain; clustering is an Elliptic capability we'd extend (or approximate in Allium / Dune).</div>
+
+      <hr class="section-divider">
+
+      <div class="section-label">Control surface — compliance event log</div>
+
+      <div class="mini-kpi-row cols4">
+        <div class="mini-kpi">
+          <div class="mini-kpi-label">❄️ Freeze events (90d)</div>
+          <div class="mini-kpi-value">3</div>
+          <div class="mini-kpi-sub">DS Protocol registry</div>
+        </div>
+        <div class="mini-kpi">
+          <div class="mini-kpi-label">🚫 Blacklisted wallets</div>
+          <div class="mini-kpi-value" style="color:#a32d2d;">2</div>
+          <div class="mini-kpi-sub">Active restrictions</div>
+        </div>
+        <div class="mini-kpi">
+          <div class="mini-kpi-label">⏸️ Pauses / reverts</div>
+          <div class="mini-kpi-value">1</div>
+          <div class="mini-kpi-sub">Transfer-level reverts</div>
+        </div>
+        <div class="mini-kpi">
+          <div class="mini-kpi-label">🕒 Last action</div>
+          <div class="mini-kpi-value" style="font-size:16px;letter-spacing:0;">2026-05-28</div>
+          <div class="mini-kpi-sub">Freeze · Securitize (TA)</div>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-bottom:8px; font-size:11px; color:#666;">Event log</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Date</th><th>Action</th><th>Wallet</th><th>Initiated by</th><th>Tx hash</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2026-05-28</td>
+            <td><span class="risk risk-med">❄️ Freeze</span></td>
+            <td class="mono">0x3b…9a</td>
+            <td style="font-size:11px;">Securitize (TA)</td>
+            <td class="mono">0xabc…12</td>
+          </tr>
+          <tr>
+            <td>2026-05-14</td>
+            <td><span class="risk risk-high">🚫 Blacklist</span></td>
+            <td class="mono">0x77…e0</td>
+            <td style="font-size:11px;">Securitize (TA)</td>
+            <td class="mono">0xdef…34</td>
+          </tr>
+          <tr>
+            <td>2026-04-30</td>
+            <td><span class="risk risk-low">♻️ Unfreeze</span></td>
+            <td class="mono">0x3b…9a</td>
+            <td style="font-size:11px;">Securitize (TA)</td>
+            <td class="mono">0x012…56</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="side-note"><b>On-chain</b> — freeze/blacklist events are emitted by Securitize's DS Protocol registry and readable on Etherscan. Elliptic doesn't parse these yet ("easy fix," in progress).</div>
+    </div>
+
+  </div>
+</div>
+  </div><!-- /primary-asset -->
+
+  <div class="primary-pane" id="primary-blockchain">
+    <div class="bc-card">
+      <div class="section-label" style="margin-bottom:10px;">Blockchain due diligence</div>
+      <p class="bc-intro">Due-diligence scoring for the chains a tokenized asset can be issued on. Each chain is assessed across security, settlement finality, liquidity depth, and Elliptic monitoring coverage to produce a single, comparable score.</p>
+      <div class="mini-kpi-row cols3" style="margin-top:16px;">
+        <div class="mini-kpi"><div class="mini-kpi-label">Chains assessed</div><div class="mini-kpi-value">8</div></div>
+        <div class="mini-kpi"><div class="mini-kpi-label">Elliptic coverage</div><div class="mini-kpi-value">6<span style="font-size:14px;font-weight:400;color:var(--muted);"> full · 2 partial</span></div></div>
+        <div class="mini-kpi"><div class="mini-kpi-label">Average DD score</div><div class="mini-kpi-value">86</div></div>
+      </div>
+      <div class="section-label" style="margin-top:20px;margin-bottom:6px;">Chain due-diligence scores</div>
+      <table class="holder-table" id="bcTable">
+        <thead>
+          <tr>
+            <th>Blockchain</th>
+            <th style="text-align:right;">Security</th>
+            <th style="text-align:right;">Finality</th>
+            <th style="text-align:right;">Liquidity</th>
+            <th>Elliptic Coverage</th>
+            <th style="width:210px;">DD Score</th>
+          </tr>
+        </thead>
+        <tbody id="bcBody"></tbody>
+      </table>
+      <div class="footnote">* DD Score scale: 88+ Strong · 80–87 Solid · below 80 Moderate. Scores combine security, settlement finality, liquidity depth, and Elliptic monitoring coverage; figures shown are illustrative.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function switchPrimary(id, btn) {
+  document.querySelectorAll('.primary-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.primary-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('primary-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// --- Blockchain due-diligence scoring ---
+const chains = [
+  { name:"Ethereum",    type:"EVM L1 · ERC-20",          sec:98, fin:90, liq:99, cov:"Full",    score:96, color:"#5b7c99" },
+  { name:"Solana",      type:"SVM L1 · SPL",             sec:88, fin:96, liq:92, cov:"Full",    score:90, color:"#7d4fc7" },
+  { name:"Arbitrum",    type:"EVM L2 · ERC-20",          sec:92, fin:85, liq:86, cov:"Full",    score:89, color:"#2e6788" },
+  { name:"Avalanche",   type:"EVM L1 · ARC-20",          sec:90, fin:96, liq:80, cov:"Full",    score:88, color:"#c0392b" },
+  { name:"Polygon PoS", type:"EVM L1 · ERC-20",          sec:85, fin:88, liq:84, cov:"Full",    score:85, color:"#8247e5" },
+  { name:"Stellar",     type:"L1 · Stellar Asset",       sec:86, fin:90, liq:72, cov:"Full",    score:82, color:"#16202e" },
+  { name:"Aptos",       type:"Move L1 · Fungible Asset", sec:84, fin:94, liq:70, cov:"Partial", score:80, color:"#2eb872" },
+  { name:"Sui",         type:"Move L1 · Coin",           sec:83, fin:95, liq:68, cov:"Partial", score:79, color:"#4da2ff" },
+];
+const scoreColor = s => s >= 88 ? "#1e7a3d" : s >= 80 ? "#2e6788" : "#9a5b0a";
+const scoreLabel = s => s >= 88 ? "Strong" : s >= 80 ? "Solid" : "Moderate";
+const bcBody = document.getElementById('bcBody');
+chains.forEach(c => {
+  const col = scoreColor(c.score);
+  const covCls = c.cov === "Full" ? "risk-low" : "risk-med";
+  bcBody.innerHTML += `<tr>
+    <td><div style="display:flex;align-items:center;gap:10px;"><span style="width:12px;height:12px;border-radius:3px;background:${c.color};flex-shrink:0;"></span><div><div style="font-weight:600;color:var(--ink-2);">${c.name}</div><div style="font-size:10px;color:var(--muted-2);">${c.type}</div></div></div></td>
+    <td style="text-align:right;">${c.sec}</td>
+    <td style="text-align:right;">${c.fin}</td>
+    <td style="text-align:right;">${c.liq}</td>
+    <td><span class="risk ${covCls}">${c.cov}</span></td>
+    <td><div style="display:flex;align-items:center;gap:9px;"><span style="font-weight:700;font-size:15px;color:${col};width:26px;">${c.score}</span><div style="flex:1;height:7px;background:#eef0f3;border-radius:3px;"><div style="width:${c.score}%;height:100%;background:${col};border-radius:3px;"></div></div><span style="font-size:10.5px;font-weight:600;color:${col};width:52px;text-align:right;">${scoreLabel(c.score)}</span></div></td>
+  </tr>`;
+});
+
+const byCategoryData = {
+  all: [
+    { name:"Issuer & Treasury", sub:"Mint, redeem, ops wallets", wallets:4, balance:"$812M", flow:"+$40M", flowPos:true, score:5 },
+    { name:"Distributors", sub:"Regulated distributor wallets", wallets:12, balance:"$640M", flow:"−$22M", flowPos:false, score:13 },
+    { name:"Counterparties", sub:"External whitelisted entities", wallets:27, balance:"$310M", flow:"+$8M", flowPos:true, score:36 },
+  ],
+  issuer: [{ name:"Issuer & Treasury", sub:"Mint, redeem, ops wallets", wallets:4, balance:"$812M", flow:"+$40M", flowPos:true, score:5 }],
+  dist:   [{ name:"Distributors", sub:"Regulated distributor wallets", wallets:12, balance:"$640M", flow:"−$22M", flowPos:false, score:13 }],
+  counter:[{ name:"Counterparties", sub:"External whitelisted entities", wallets:27, balance:"$310M", flow:"+$8M", flowPos:true, score:36 }],
+  holders:[{ name:"Counterparties", sub:"External whitelisted entities", wallets:27, balance:"$310M", flow:"+$8M", flowPos:true, score:36 }],
+};
+
+const byEntityData = {
+  all: [
+    { name:"BlackRock · Issuer", sub:"", wallets:2, balance:"$690M", flow:"+$32M", flowPos:true, score:4 },
+    { name:"Securitize · Transfer Agent", sub:"", wallets:3, balance:"$140M", flow:"+$8M", flowPos:true, score:9 },
+    { name:"Distributor A", sub:"", wallets:5, balance:"$420M", flow:"−$15M", flowPos:false, score:12 },
+    { name:"Distributor B", sub:"", wallets:7, balance:"$220M", flow:"−$7M", flowPos:false, score:15 },
+    { name:"Anchorage · Custodian", sub:"", wallets:4, balance:"$180M", flow:"+$5M", flowPos:true, score:18 },
+    { name:"Other holders", sub:"", wallets:22, balance:"$130M", flow:"+$3M", flowPos:true, score:34 },
+  ],
+  issuer: [
+    { name:"BlackRock · Issuer", sub:"", wallets:2, balance:"$690M", flow:"+$32M", flowPos:true, score:4 },
+    { name:"Securitize · Transfer Agent", sub:"", wallets:3, balance:"$140M", flow:"+$8M", flowPos:true, score:9 },
+  ],
+  dist:   [
+    { name:"Distributor A", sub:"", wallets:5, balance:"$420M", flow:"−$15M", flowPos:false, score:12 },
+    { name:"Distributor B", sub:"", wallets:7, balance:"$220M", flow:"−$7M", flowPos:false, score:15 },
+  ],
+  counter:[
+    { name:"Anchorage · Custodian", sub:"", wallets:4, balance:"$180M", flow:"+$5M", flowPos:true, score:18 },
+    { name:"Other holders", sub:"", wallets:22, balance:"$130M", flow:"+$3M", flowPos:true, score:34 },
+  ],
+  holders:[{ name:"Other holders", sub:"", wallets:22, balance:"$130M", flow:"+$3M", flowPos:true, score:34 }],
+};
+
+let currentCluster = 'all';
+let currentGroup = 'category';
+
+function riskMeta(s) {
+  if (s < 20) return { cls:'risk-low', col:'#1e7a3d', label:'Low' };
+  if (s < 50) return { cls:'risk-med', col:'#9a5b0a', label:'Medium' };
+  return { cls:'risk-high', col:'#a32d2d', label:'High' };
+}
+
+function renderRollup() {
+  const data = currentGroup === 'category' ? byCategoryData[currentCluster] : byEntityData[currentCluster];
+  const el = document.getElementById('rollupCards');
+  el.innerHTML = '';
+  (data || []).forEach(row => {
+    const rm = riskMeta(row.score);
+    const flowCls = row.flowPos ? 'flow-pos' : 'flow-neg';
+    el.innerHTML += `<div class="rollup-card cols5">
+      <div><div class="rollup-name">${row.name}</div>${row.sub ? `<div class="rollup-sub">${row.sub}</div>` : ''}</div>
+      <div class="rollup-cell">${row.wallets} wallets</div>
+      <div class="rollup-cell" style="font-weight:500;">${row.balance}</div>
+      <div class="rollup-cell ${flowCls}">${row.flow}</div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:9.5px;color:var(--muted-2);">Risk</span><span style="font-weight:700;color:${rm.col};font-size:14px;">${row.score}</span><span class="risk ${rm.cls}">${rm.label}</span></div>
+    </div>`;
+  });
+}
+
+function setCluster(id) {
+  currentCluster = id;
+  renderRollup();
+  const labels = { all:'All wallets', issuer:'Issuer & Treasury', dist:'Distributors', counter:'Counterparties', holders:'Holders (all)' };
+  document.getElementById('drillLabel').textContent = labels[id] || id;
+}
+
+function setGroup(g) {
+  currentGroup = g;
+  renderRollup();
+}
+
+renderRollup();
+
+const holders = [
+  { rank:1, addr:"0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503", label:"BlackRock BUIDL Fund", tag:"br", bal:"168,420,000", pct:27.96 },
+  { rank:2, addr:"0x28C6c06298d514Db089934071355E5743bf21d60", label:"BlackRock BUIDL Fund", tag:"br", bal:"92,100,000", pct:15.29 },
+  { rank:3, addr:"0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8", label:"Securitize", tag:"sec", bal:"64,500,000", pct:10.71 },
+  { rank:4, addr:"0x0D0707963952f2fBA59dD06f2b425ace40b492Fe", label:"Unknown", tag:"unk", bal:"41,300,000", pct:6.86 },
+  { rank:5, addr:"0x5a52E96BAcdaBb82fd05763E25335261B270Efcb", label:"Unknown", tag:"unk", bal:"33,800,000", pct:5.61 },
+  { rank:6, addr:"0x9696f59E4d72E237BE84fFD425DCaD154Bf2cc61", label:"Securitize", tag:"sec", bal:"24,600,000", pct:4.08 },
+  { rank:7, addr:"0xA929022c9107643563a903658F3104Ac4A66d9A3", label:"Unknown", tag:"unk", bal:"18,400,000", pct:3.05 },
+  { rank:8, addr:"0x1E2FCfd26d36183f1Fdd1B45a4bABa62e1A11F3E", label:"BlackRock BUIDL Fund", tag:"br", bal:"12,900,000", pct:2.14 },
+  { rank:9, addr:"0x3f5CE5FBFe3E9af3971dD833D26bA9b5C936f0bE", label:"Unknown", tag:"unk", bal:"8,700,000", pct:1.44 },
+  { rank:10, addr:"0xD551234Ae421e3BCBA99A0Da6d736074f22192FF", label:"Securitize", tag:"sec", bal:"6,200,000", pct:1.03 },
+];
+const hbody = document.getElementById('holderTbody');
+const holderRisk = { 1:3, 2:4, 3:9, 4:22, 5:16, 6:8, 7:41, 8:5, 9:28, 10:11 };
+holders.forEach(h => {
+  const short = h.addr.slice(0,6)+"..."+h.addr.slice(-4);
+  const rm = riskMeta(holderRisk[h.rank]);
+  hbody.innerHTML += `<tr>
+    <td style="color:var(--muted);">${h.rank}</td>
+    <td class="mono">${short}</td>
+    <td>${h.label}</td>
+    <td style="text-align:right;">${h.bal}</td>
+    <td style="text-align:right;font-weight:600;">${h.pct.toFixed(2)}%</td>
+    <td><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:700;color:${rm.col};">${holderRisk[h.rank]}</span><span class="risk ${rm.cls}">${rm.label}</span></div></td>
+  </tr>`;
+});
+
+const barEl = document.getElementById('barChart');
+const chartPalette = ["#aadcec","#1f5f7a","#f5a142","#a2d43f","#d6459f","#5b8def","#7d4fc7","#2eb872","#f6a8c5","#e23b2e"];
+holders.forEach((h, i) => {
+  const w = Math.round(h.pct / 28 * 100);
+  const short = h.addr.slice(0,6)+"..."+h.addr.slice(-4);
+  const color = chartPalette[i % chartPalette.length];
+  barEl.innerHTML += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+    <div style="font-family:monospace;font-size:9.5px;color:#5a6573;width:88px;flex-shrink:0;">${short}</div>
+    <div style="flex:1;height:14px;background:#eef0f3;border-radius:2px;overflow:hidden;"><div style="width:${w}%;height:100%;background:${color};border-radius:2px;"></div></div>
+    <div style="font-size:10px;color:#5a6573;width:36px;text-align:right;">${h.pct.toFixed(1)}%</div>
+  </div>`;
+});
+
+const txns = [
+  ["$25,410,226.42","0x27b1b634...","BUIDL","Ethereum","Apr 8, 2026","Unknown","Unknown","0x9c4f…b1a3","BlackRock BUIDL Fund","Financial Services","0x47ac…D503"],
+  ["$5,385,843.40","0x6741f573...","BUIDL","Ethereum","Jan 26, 2026","Unknown","Unknown","0x3f5c…f0bE","BlackRock BUIDL Fund","Financial Services","0x28C6…1d60"],
+  ["$4,751,877.00","0x3a4e5b61...","BUIDL","Ethereum","May 13, 2026","Unknown","Unknown","0xa929…d9A3","Unknown","Unknown","0x0D07…92Fe"],
+  ["$4,698,847.11","0x1d9c22f8...","BUIDL","Ethereum","May 13, 2026","Unknown","Unknown","0x5a52…Efcb","Unknown","Unknown","0x1E2F…1F3E"],
+  ["$4,216,311.50","0x37da7be5...","BUIDL","Ethereum","Mar 11, 2026","Unknown","Unknown","0x44e2…7d10","BlackRock BUIDL Fund","Financial Services","0x47ac…D503"],
+  ["$2,999,373.00","0x2490e4e5...","BUIDL","Ethereum","Jan 19, 2026","Unknown","Unknown","0x10c2…aa31","Securitize","Trading Platform","0xBE0e…33E8"],
+  ["$2,499,477.32","0x42fcc8c2...","BUIDL","Ethereum","May 18, 2026","Unknown","Unknown","0x88e3…4f7d","BlackRock BUIDL Fund","Financial Services","0x28C6…1d60"],
+  ["$1,999,741.83","0xce85fa0f...","BUIDL","Ethereum","Apr 15, 2026","Unknown","Unknown","0x77e0…9a3b","Securitize","Trading Platform","0x9696…cc61"],
+  ["$1,500,040.29","0xa7d4a012...","BUIDL","Ethereum","Feb 24, 2026","Unknown","Unknown","0x31f4…c206","BlackRock BUIDL Fund","Financial Services","0x47ac…D503"],
+  ["$300,019.68","0xbc045dd5...","BUIDL","Ethereum","Mar 13, 2026","Unknown","Unknown","0x3b9a…e201","Deribit","Exchange","0xD551…92FF"],
+];
+const tbody = document.getElementById('txBody');
+const txMono = [0, 1, 7, 10];
+txns.forEach(row => {
+  tbody.innerHTML += `<tr>${row.map((c,i)=>`<td${txMono.includes(i)?' class="mono"':''}>${c}</td>`).join('')}</tr>`;
+});
+
+// --- Category stacked-bar charts (Amount Sent / Received) ---
+const catCats = [
+  { name:"Distributors", color:"#2e6788" },
+  { name:"Issuer & Treasury", color:"#e2933a" },
+  { name:"Counterparties", color:"#a7d8ec" },
+];
+const sentData = [
+  { m:"Jan 2026", v:[9, 2, 1] },
+  { m:"Feb 2026", v:[5, 1, 0.5] },
+  { m:"Mar 2026", v:[8, 1.5, 1] },
+  { m:"Apr 2026", v:[24, 4, 2] },
+  { m:"May 2026", v:[20, 3, 2] },
+];
+const recvData = [
+  { m:"Jan 2026", v:[12, 3, 2] },
+  { m:"Feb 2026", v:[7, 2, 1] },
+  { m:"Mar 2026", v:[11, 2, 2] },
+  { m:"Apr 2026", v:[22, 4, 3] },
+  { m:"May 2026", v:[16, 3, 4] },
+];
+const CAT_MAX = 30; // $M ceiling — shared scale across both charts
+
+function renderCatLegend(elId) {
+  document.getElementById(elId).innerHTML =
+    catCats.map(c => `<span><i style="background:${c.color}"></i>${c.name}</span>`).join('');
+}
+
+function renderStacked(elId, data, max) {
+  const L = 50, R = 470, TOP = 18, BASE = 160, n = data.length;
+  const slot = (R - L) / n, barW = 40, off = (slot - barW) / 2;
+  const y = v => BASE - (v / max) * (BASE - TOP);
+  let s = `<svg width="100%" viewBox="0 0 500 200">`;
+  // gridlines + y labels
+  [0, max/3, 2*max/3, max].forEach(t => {
+    const yy = y(t);
+    s += `<line x1="${L}" y1="${yy.toFixed(1)}" x2="${R}" y2="${yy.toFixed(1)}" stroke="#e9ecf0" stroke-width="1"${t > 0 ? ' stroke-dasharray="2,3"' : ''}/>`;
+    s += `<text x="${L-7}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="9.5" fill="#8b94a0">$${Math.round(t)}M</text>`;
+  });
+  // stacked bars
+  data.forEach((d, i) => {
+    const x = L + i*slot + off;
+    let cum = 0;
+    d.v.forEach((val, ci) => {
+      const yTop = y(cum + val), h = y(cum) - yTop;
+      s += `<rect x="${x.toFixed(1)}" y="${yTop.toFixed(1)}" width="${barW}" height="${h.toFixed(1)}" fill="${catCats[ci].color}"/>`;
+      cum += val;
+    });
+    s += `<text x="${(x+barW/2).toFixed(1)}" y="174" text-anchor="middle" font-size="8.5" fill="#8b94a0">${d.m}</text>`;
+  });
+  s += `<line x1="${L}" y1="${BASE}" x2="${R}" y2="${BASE}" stroke="#cfd6dd" stroke-width="1"/>`;
+  s += `<text x="${(L+R)/2}" y="193" text-anchor="middle" font-size="9.5" fill="#8b94a0">Date (Month)</text>`;
+  s += `</svg>`;
+  document.getElementById(elId).innerHTML = s;
+}
+
+renderCatLegend('catLegendSent');
+renderCatLegend('catLegendRecv');
+renderStacked('sentChart', sentData, CAT_MAX);
+renderStacked('recvChart', recvData, CAT_MAX);
+</script>
+</body>
+</html>
