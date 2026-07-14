@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solutions operating systems</title>
+<meta name="description" content="Two systems: the integration support & escalation line, and the cross-functional operating system between Solutions and Engineering.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A0D13;
+  --surface:#10151F;
+  --surface-2:#151C29;
+  --line:#1E2836;
+  --line-strong:#2A3547;
+  --wire:#26324A;
+  --text:#E9EEF6;
+  --muted:#93A0B4;
+  --faint:#5C6980;
+  --violet:#8C7BFF;
+  --cyan:#5BC9F2;
+  --green:#3DDC97;
+  --amber:#F2B34C;
+  --red:#F26D7E;
+  --pink:#F27BB8;
+  --radius:14px;
+  --maxw:1200px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',system-ui,sans-serif;
+  font-size:15px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:rgba(140,123,255,.35)}
+a{color:inherit;text-decoration:none}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:40;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  background:rgba(10,13,19,.72);
+  border-bottom:1px solid var(--line);
+}
+.hbar{
+  max-width:var(--maxw);margin:0 auto;padding:0 24px;
+  height:60px;display:flex;align-items:center;gap:28px;
+}
+.brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;letter-spacing:.02em}
+.brand .pip{width:9px;height:9px;border-radius:3px;background:linear-gradient(135deg,var(--cyan),var(--violet));box-shadow:0 0 12px rgba(140,123,255,.55)}
+nav{display:flex;gap:4px;margin-left:auto}
+nav a{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);
+  padding:7px 12px;border-radius:8px;transition:color .18s,background .18s;
+}
+nav a:hover{color:var(--text);background:var(--surface-2)}
+nav a.active{color:var(--text);background:var(--surface-2)}
+nav a:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.quizbtn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;margin-left:6px;border-radius:9px;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--muted);
+  cursor:pointer;transition:color .18s,border-color .18s,background .18s;
+}
+.quizbtn:hover{color:var(--text);border-color:var(--line-strong)}
+.quizbtn:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.quizbtn .eye-off{display:none}
+.quizbtn[aria-pressed="true"]{color:var(--violet);border-color:var(--violet);background:rgba(140,123,255,.12)}
+.quizbtn[aria-pressed="true"] .eye-open{display:none}
+.quizbtn[aria-pressed="true"] .eye-off{display:inline}
+
+/* quiz mode: blank ALL text in a card until clicked, then reveal it all at once */
+.quiz .qcard{position:relative;cursor:help}
+.quiz .qcard .t,
+.quiz .qcard .s,
+.quiz .qcard .cat,
+.quiz .qcard .chips,
+.quiz .qcard .plist,
+.quiz .qcard .ml,
+.quiz .qcard .mv,
+.quiz .qcard .ms,
+.quiz .qcard > p,
+.quiz .qcard .bp,
+.quiz .qcard .n,
+.quiz .qcard .ttag{
+  color:transparent !important;border-radius:6px;
+  background:repeating-linear-gradient(135deg,rgba(140,123,255,.12),rgba(140,123,255,.12) 6px,rgba(140,123,255,.05) 6px,rgba(140,123,255,.05) 12px);
+  box-shadow:inset 0 0 0 1px rgba(140,123,255,.18);transition:box-shadow .15s;
+}
+.quiz .qcard .chips b{background:none !important;box-shadow:none !important}
+.quiz .qcard:not(.revealed) .chips b,
+.quiz .qcard:not(.revealed) .chips b.hot,
+.quiz .qcard:not(.revealed) .plist li::before,
+.quiz .qcard:not(.revealed) .mod,
+.quiz .qcard:not(.revealed) .wkfoot{color:transparent !important}
+.quiz .qcard:not(.revealed) .mod{border-color:rgba(140,123,255,.25)}
+.quiz .qcard:hover .t{box-shadow:inset 0 0 0 1px rgba(140,123,255,.45)}
+.quiz .qcard.revealed .t,
+.quiz .qcard.revealed .s,
+.quiz .qcard.revealed .cat,
+.quiz .qcard.revealed .chips,
+.quiz .qcard.revealed .plist,
+.quiz .qcard.revealed .ml,
+.quiz .qcard.revealed .mv,
+.quiz .qcard.revealed .ms,
+.quiz .qcard.revealed > p,
+.quiz .qcard.revealed .bp,
+.quiz .qcard.revealed .n,
+.quiz .qcard.revealed .ttag{color:inherit !important;background:none;box-shadow:none}
+.quiz .qcard.revealed{cursor:auto}
+.quizhint{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:55;
+  background:var(--surface);border:1px solid var(--violet);border-radius:999px;
+  padding:9px 18px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text);
+  box-shadow:0 14px 40px -16px rgba(0,0,0,.8);opacity:0;pointer-events:none;transition:opacity .25s ease;
+}
+.quizhint.show{opacity:1}
+
+/* ---------- hero ---------- */
+.hero{max-width:var(--maxw);margin:0 auto;padding:64px 24px 36px}
+.eyebrow{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--faint);
+}
+.hero h1{
+  font-family:'Space Grotesk',sans-serif;font-weight:600;
+  font-size:clamp(30px,4.6vw,50px);line-height:1.08;letter-spacing:-.015em;
+  margin:14px 0 16px;max-width:720px;
+}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--cyan),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--muted);max-width:560px}
+.hero .hint{margin-top:22px;display:inline-flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint)}
+.hero .hint .dot{width:6px;height:6px;border-radius:50%;background:var(--violet);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){.hero .hint .dot{animation:none}}
+
+/* ---------- sections ---------- */
+section.sys{max-width:var(--maxw);margin:0 auto;padding:52px 24px 20px}
+.sys-head{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin-bottom:8px}
+.sys-num{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;color:var(--faint);
+  border:1px solid var(--line);border-radius:999px;padding:4px 12px;
+}
+.sys h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:clamp(21px,2.6vw,28px);letter-spacing:-.01em}
+.sys .lede{color:var(--muted);max-width:640px;margin:8px 0 30px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 24px}
+.legend span{display:inline-flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--faint)}
+.legend i{width:8px;height:8px;border-radius:3px;display:inline-block}
+
+/* ---------- flow canvas: strict left-to-right ---------- */
+.overview{margin:2px 0 34px}
+#g0{grid-template-columns:1fr 1.15fr 1fr;max-width:820px;margin:0 auto;column-gap:24px}
+#g0 .col{gap:22px}
+.ovleft{align-items:flex-start}
+.ovright{align-items:flex-end}
+.ovnode{
+  background:transparent;border:1px dashed var(--line-strong);border-radius:999px;
+  padding:9px 18px;text-align:center;cursor:pointer;width:auto;
+  font-family:'Space Grotesk',sans-serif;font-weight:500;font-size:13.5px;color:var(--muted);
+  transition:color .18s ease,border-color .18s ease;
+}
+.ovnode:hover{color:var(--text);border-color:var(--faint)}
+.ovnode:focus-visible{outline:2px solid var(--violet);outline-offset:3px}
+.ovhub{
+  border:1px solid rgba(140,123,255,.45);border-style:solid;
+  background:rgba(140,123,255,.07);padding:14px 24px;
+  justify-self:center;min-width:240px;
+}
+.ovhub:hover{border-color:var(--violet)}
+.ovhub .t{display:block;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:var(--text);letter-spacing:-.005em}
+.ovhub .s{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;font-weight:400}
+@media (max-width:920px){
+  #g0{column-gap:14px;max-width:none}
+  #flow-ov svg.wires{display:block !important}
+  .ovnode{font-size:12px;padding:8px 10px}
+}
+.flow{position:relative;padding:8px 0 20px}
+.flow svg.wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.flow-grid{position:relative;z-index:1;display:grid;column-gap:56px;row-gap:20px;align-items:center}
+#g1,#g2{grid-template-columns:repeat(5,minmax(0,1fr))}
+#g2{grid-template-columns:repeat(4,minmax(0,1fr))}
+.r1c1{grid-area:1/1}.r1c2{grid-area:1/2}.r1c3{grid-area:1/3}.r1c4{grid-area:1/4}.r1c5{grid-area:1/5}
+.r2c1{grid-area:2/1}.r2c2{grid-area:2/2}.r2c4{grid-area:2/4}.r2c5{grid-area:2/5}
+.r3c1{grid-area:3/1}.r4c4{grid-area:4/4}
+#g2{row-gap:8px}
+.fit{width:auto;justify-self:center;padding:10px 18px}
+.r3c2{grid-area:3/2}.r3c3{grid-area:3/3}.r3c4{grid-area:3/4}.r3c5{grid-area:3/5}
+.r2c1s2{grid-area:2/1/4/2;align-self:start}
+.r1c5s3{grid-area:1/5/4/6;align-self:center}
+#g1{row-gap:12px}
+.col{display:flex;flex-direction:column;gap:12px}
+
+/* ---------- nodes ---------- */
+.node{
+  --cat:var(--violet);
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:15px 16px;
+  text-align:left;cursor:pointer;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;
+  width:100%;color:var(--text);font:inherit;display:block;
+}
+.node:hover{transform:translateY(-2px);border-color:var(--line-strong);background:var(--surface-2);
+  box-shadow:0 0 0 1px rgba(255,255,255,.03),0 14px 34px -18px rgba(0,0,0,.9),0 0 22px -10px var(--cat)}
+.node:focus-visible{outline:2px solid var(--cat);outline-offset:3px}
+@media (prefers-reduced-motion: reduce){.node{transition:none}.node:hover{transform:none}}
+.node .cat{
+  display:flex;align-items:center;gap:7px;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--faint);margin-bottom:8px;
+}
+.node .cat::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--cat);box-shadow:0 0 8px color-mix(in srgb,var(--cat) 60%,transparent)}
+.node .t{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15.5px;letter-spacing:-.005em;display:block}
+.node .s{color:var(--muted);font-size:12.5px;margin-top:3px;display:block;line-height:1.45}
+.node.mini{padding:12px 14px}
+.node.mini .t{font-size:14px}
+.node.milestone{border-style:dashed}
+.cat-cyan{--cat:var(--cyan)}.cat-violet{--cat:var(--violet)}.cat-green{--cat:var(--green)}
+.cat-amber{--cat:var(--amber)}.cat-red{--cat:var(--red)}.cat-pink{--cat:var(--pink)}.cat-gray{--cat:#7C8AA0}
+
+/* metric chip — a readout, not a button */
+.metric{
+  border:1px solid rgba(91,201,242,.28);border-radius:12px;padding:11px 14px;
+  background:rgba(91,201,242,.05);
+}
+.metric .ml{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.18em;color:var(--cyan);text-transform:uppercase}
+.metric .mv{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14.5px;margin-top:4px}
+.metric .ms{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+
+/* weights group nested inside the weighting engine */
+.node .wgroup{margin-top:11px;border:1px dashed var(--line-strong);border-radius:10px;padding:9px 11px 11px}
+.wgroup .wcap{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.wgroup .wrow{
+  display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  padding:6px 9px;border:1px solid var(--line);border-radius:8px;margin-top:6px;
+  cursor:pointer;transition:border-color .15s ease;background:var(--surface);
+}
+.wgroup .wrow:hover{border-color:var(--cyan)}
+.wgroup .wrow:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.wrow .wt{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12.5px}
+.wrow .ws{font-size:10.5px;color:var(--muted);text-align:right}
+
+/* success / issue branch between client live and request filed */
+.branch{
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--faint);
+  padding:1px 0;
+}
+.branch .b-ok{color:var(--green)}
+.branch .b-issue{color:var(--muted)}
+
+/* connector hint inside a column (live -> request) */
+.subarrow{display:flex;justify-content:center;color:var(--faint);font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1;margin:-4px 0}
+
+/* dept column & tier stack */
+.stackbox{
+  border:1px dashed var(--line-strong);border-radius:16px;padding:14px;
+  display:flex;flex-direction:column;gap:10px;background:rgba(16,21,31,.4);
+}
+.stackbox .cap{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);padding:0 2px}
+.stackbox .node{padding:12px 14px}
+.stackbox .node .t{font-size:14px}
+
+/* broker nesting */
+.node .nest{
+  margin-top:12px;border:1px solid var(--line);border-radius:10px;
+  background:rgba(242,123,184,.05);padding:11px 13px;
+  transition:border-color .18s ease;cursor:pointer;
+}
+.node .nest:hover{border-color:var(--pink)}
+.node .nest:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+.nest .nt{display:flex;align-items:center;gap:7px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px}
+.nest .nt::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--pink)}
+.nest ul{list-style:none;margin-top:6px}
+.nest li{font-size:12px;color:var(--muted);padding:1.5px 0;line-height:1.4}
+
+/* expand button inside the loop node */
+.expand{
+  margin-top:11px;width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:9px;
+  padding:8px 11px;color:var(--cyan);font-family:'IBM Plex Mono',monospace;font-size:11px;
+  cursor:pointer;transition:border-color .18s ease;
+}
+.expand:hover{border-color:var(--cyan)}
+.expand:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.expand .ch{transition:transform .25s ease;display:inline-block}
+.expand[aria-expanded="true"] .ch{transform:rotate(180deg)}
+@media (prefers-reduced-motion: reduce){.expand .ch{transition:none}}
+
+/* ---------- loop stages (collapsible) ---------- */
+.tracks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+@media (max-width:920px){.tracks{grid-template-columns:1fr}}
+.chips{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:10px 0 9px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--faint)}
+.chips b{font-weight:500;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px;background:var(--surface-2);white-space:nowrap}
+.chips b.hot{color:var(--cat);border-color:color-mix(in srgb,var(--cat) 45%,var(--line))}
+.stagecap{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.18em;color:var(--faint);text-transform:uppercase;margin:6px 0 12px}
+/* track selection + stage highlighting */
+.track,.bsec{position:relative}
+.track .ttag,.bsec .ttag{
+  position:absolute;top:13px;right:13px;
+  font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.12em;
+  color:var(--cat);border:1px solid color-mix(in srgb,var(--cat) 45%,var(--line));
+  border-radius:999px;padding:2px 8px;
+}
+.track.sel,.bsec.sel{border-color:var(--cat);box-shadow:0 0 0 1px var(--cat),0 0 24px -10px var(--cat)}
+.bsec-detail{max-height:0;opacity:0;overflow:hidden;transition:max-height .4s ease,opacity .3s ease}
+.bsec-detail.open{max-height:900px;opacity:1;margin-bottom:4px}
+@media (prefers-reduced-motion: reduce){.bsec-detail{transition:none}}
+.tinfo{
+  margin-top:10px;background:none;border:none;padding:0;cursor:pointer;
+  color:var(--cyan);font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;
+  display:block;
+}
+.tinfo:hover{text-decoration:underline}
+.tinfo:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.stage.hl{border-color:var(--hlc);box-shadow:0 0 0 1px var(--hlc),0 0 18px -10px var(--hlc)}
+.dim{opacity:.32;transition:opacity .2s ease}
+.node.hlt{border-color:var(--cat);box-shadow:0 0 0 1px var(--cat),0 0 22px -10px var(--cat)}
+.loopwrap{
+  max-width:var(--maxw);margin:0 auto;padding:0 24px;
+  max-height:0;opacity:0;overflow:hidden;
+  transition:max-height .45s ease,opacity .3s ease,padding .3s ease;
+}
+.loopwrap.open{max-height:1600px;opacity:1;padding:10px 24px 44px}
+@media (prefers-reduced-motion: reduce){.loopwrap{transition:none}}
+.loopwrap h3,.brokerwrap h3{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;margin-bottom:6px}
+.loopwrap .sub,.brokerwrap .sub{color:var(--muted);font-size:14px;margin-bottom:20px;max-width:620px}
+.stages{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px}
+.stage{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:14px;text-align:left;cursor:pointer;color:var(--text);font:inherit;width:100%;
+  transition:transform .18s ease,border-color .18s ease,background .18s ease;position:relative;
+}
+.stage:hover{transform:translateY(-2px);border-color:var(--violet);background:var(--surface-2)}
+.stage:focus-visible{outline:2px solid var(--violet);outline-offset:3px}
+@media (prefers-reduced-motion: reduce){.stage{transition:none}.stage:hover{transform:none}}
+.stage .n{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--violet)}
+.stage .t{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14.5px;margin:6px 0 3px}
+.stage .s{font-size:12px;color:var(--muted);line-height:1.45}
+.stage .mod{
+  position:absolute;top:12px;right:12px;
+  font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.12em;
+  color:var(--cyan);border:1px solid rgba(91,201,242,.35);border-radius:999px;padding:2px 7px;
+}
+.loopreturn{margin-top:18px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint);display:flex;align-items:center;gap:8px}
+.loopreturn b{color:var(--cyan);font-weight:500}
+
+/* ---------- inline detail strip (weights, under System 2) ---------- */
+.dexwrap{max-height:0;opacity:0;overflow:hidden;transition:max-height .4s ease,opacity .3s ease}
+.dexwrap.open{max-height:760px;opacity:1}
+@media (prefers-reduced-motion: reduce){.dexwrap{transition:none}}
+.dex{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px 20px}
+.dex-head{display:flex;align-items:flex-start;gap:12px}
+.dex-head .cat{
+  --cat:var(--cyan);
+  display:inline-flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;
+  font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);
+}
+.dex-head .cat::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--cat)}
+.dex h3{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:19px;letter-spacing:-.01em;margin:10px 0 8px}
+.dex p{color:var(--muted);font-size:13.5px;margin-bottom:12px}
+.wrow.on{border-color:var(--cyan)}
+.wrow.on .wt{color:var(--cyan)}
+.ovnode.on{border-color:var(--faint);color:var(--text)}
+.nest.on{border-color:var(--pink)}
+.afterwrap{
+  display:flex;flex-direction:column;gap:12px;
+  max-height:0;opacity:0;overflow:hidden;
+  transition:max-height .35s ease,opacity .25s ease,margin .25s ease;
+}
+.afterwrap.open{max-height:420px;opacity:1;margin-top:2px}
+@media (prefers-reduced-motion: reduce){.afterwrap{transition:none}}
+.expand.pink{color:var(--pink);margin-top:0}
+.expand.pink:hover{border-color:var(--pink)}
+.expand.pink:focus-visible{outline-color:var(--pink)}
+.tinfo.pink{color:var(--pink);margin-top:8px}
+
+/* ---------- broker playbook (expandable) ---------- */
+.brokerwrap{max-height:0;opacity:0;overflow:hidden;transition:max-height .45s ease,opacity .3s ease}
+.brokerwrap.open{max-height:2400px;opacity:1;padding:14px 0 8px}
+@media (prefers-reduced-motion: reduce){.brokerwrap{transition:none}}
+.bk-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media (max-width:920px){.bk-grid{grid-template-columns:1fr}}
+.bkcard{
+  --cat:var(--violet);
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+}
+.bkcard .cat{
+  display:flex;align-items:center;gap:7px;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--faint);margin-bottom:8px;
+}
+.bkcard .cat::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--cat)}
+.bkcard .plist li::before{color:var(--cat)}
+.bkcard .plist li{font-size:13px}
+.bksteps{display:grid;grid-template-columns:1fr 1fr 1fr 160px;gap:12px;margin-bottom:14px}
+@media (max-width:920px){.bksteps{grid-template-columns:1fr}}
+.bkterm{display:flex;flex-direction:column;justify-content:center;border-style:dashed}
+.bkterm .t{font-size:19px}
+.bkstd{
+  border:1px solid rgba(242,123,184,.32);background:rgba(242,123,184,.05);
+  border-radius:12px;padding:16px 18px 18px;margin:4px 0 8px;
+  font-size:13.5px;line-height:1.65;color:var(--text);
+}
+.bkstd p{color:var(--muted);font-size:13.5px;margin-bottom:12px}
+.bkstd .bp{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--pink);display:block;margin-bottom:8px}
+.bkstd .plist li::before{color:var(--pink)}
+.wk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+@media (max-width:920px){.wk-grid{grid-template-columns:1fr}}
+.wkstd{border-color:rgba(91,201,242,.3);background:rgba(91,201,242,.05)}
+.wkstd .bp{color:var(--cyan)}
+.wkstd .plist li::before{color:var(--cyan)}
+.wkfoot{margin-top:12px;margin-bottom:0 !important}
+.plist.cols2{columns:2;column-gap:32px}
+.plist.cols2 li{break-inside:avoid}
+@media (max-width:920px){.plist.cols2{columns:1}}
+
+/* ---------- detail panel ---------- */
+.backdrop{
+  position:fixed;inset:0;background:rgba(4,6,10,.6);z-index:60;
+  opacity:0;pointer-events:none;transition:opacity .22s ease;
+}
+.backdrop.open{opacity:1;pointer-events:auto}
+.panel{
+  position:fixed;top:0;right:0;bottom:0;width:min(400px,92vw);z-index:70;
+  background:var(--surface);border-left:1px solid var(--line);
+  transform:translateX(102%);transition:transform .26s cubic-bezier(.32,.72,.28,1);
+  display:flex;flex-direction:column;
+}
+.panel.open{transform:translateX(0)}
+@media (prefers-reduced-motion: reduce){.panel,.backdrop{transition:none}}
+.panel-head{display:flex;align-items:flex-start;gap:12px;padding:22px 22px 0}
+.panel-head .cat{
+  --cat:var(--violet);
+  display:inline-flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;
+  font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);
+}
+.panel-head .cat::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--cat)}
+.panel-close{
+  margin-left:auto;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);
+  width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:15px;line-height:1;
+  transition:color .15s,border-color .15s;
+}
+.panel-close:hover{color:var(--text);border-color:var(--line-strong)}
+.panel-close:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.panel-body{padding:10px 22px 28px;overflow-y:auto}
+.panel-body h3{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:21px;letter-spacing:-.01em;margin:8px 0 10px}
+.panel-body p{color:var(--muted);font-size:14px;margin-bottom:14px}
+.plist{list-style:none;border-top:1px solid var(--line)}
+.plist li{
+  padding:11px 0;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--text);
+  display:flex;gap:10px;align-items:baseline;
+}
+.plist li::before{content:"›";color:var(--violet);font-family:'IBM Plex Mono',monospace;flex:none}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--line);margin-top:48px}
+footer .fin{max-width:var(--maxw);margin:0 auto;padding:28px 24px;display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between;
+  font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--faint)}
+
+/* ---------- mobile ---------- */
+.mchev{display:none}
+@media (max-width:920px){
+  .flow svg.wires{display:none}
+  #g1,#g2{grid-template-columns:1fr;row-gap:0}
+  #g1>*,#g2>*{grid-area:auto !important}
+  .mchev{display:flex;justify-content:center;color:var(--faint);font-family:'IBM Plex Mono',monospace;font-size:13px;padding:10px 0}
+  .col{gap:10px}
+  .hero{padding-top:48px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hbar">
+    <a class="brand" href="#top"><span class="pip"></span>OPS&nbsp;/&nbsp;SYSTEMS</a>
+    <nav>
+      <a href="#system-1" data-nav="system-1">System 01</a>
+      <a href="#system-2" data-nav="system-2">System 02</a>
+      <button id="quiz-toggle" class="quizbtn" aria-pressed="false" title="Quiz mode — blank the labels and test yourself" aria-label="Toggle quiz mode">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path class="eye-open" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+          <circle class="eye-open" cx="12" cy="12" r="3"/>
+          <path class="eye-off" d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+          <line class="eye-off" x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="eyebrow">Solutions operating systems</div>
+    <h1>Two systems.<br>One <em>escalation line.</em></h1>
+    <p>How an issue gets owned end to end, and how the roadmap gets brokered across Sales, Product, and Engineering — without draining the people who build.</p>
+    <div class="hint"><span class="dot"></span>Tap any node to open its playbook</div>
+  </div>
+
+  <!-- ================= SYSTEM 1 ================= -->
+  <section class="sys" id="system-1">
+    <div class="sys-head">
+      <span class="sys-num">SYS&nbsp;01</span>
+      <h2>Integration support &amp; escalation line</h2>
+    </div>
+    <p class="lede">Self-serve documentation drives time to first call. Clients go live; the ones with questions flow into Solutions, through the ownership loop, and out to a tier.</p>
+    <div class="legend">
+      <span><i style="background:var(--cyan)"></i>Enablement</span>
+      <span><i style="background:var(--violet)"></i>Ownership</span>
+      <span><i style="background:var(--green)"></i>Tier 1 · low eng load</span>
+      <span><i style="background:var(--amber)"></i>Tier 2</span>
+      <span><i style="background:var(--red)"></i>Tier 3 · high eng load</span>
+    </div>
+
+    <div class="flow" id="flow-s1">
+      <svg class="wires" aria-hidden="true"></svg>
+      <div class="flow-grid" id="g1">
+
+        <div class="node cat-cyan r1c1" role="button" tabindex="0" data-node="docs">
+          <span class="cat">Enablement</span>
+          <span class="t">Self-serve documentation</span>
+          <span class="s">Onboarding docs · API docs · SDKs · error catalogs</span>
+        </div>
+        <div class="metric r2c1s2" aria-label="North-star metric: time to first call">
+          <div class="ml">North-star metric</div>
+          <div class="mv">Time to first call</div>
+          <div class="ms">Signup → first successful API call</div>
+        </div>
+        <div class="mchev" aria-hidden="true">↓</div>
+
+        <div class="node cat-gray milestone r1c2" role="button" tabindex="0" data-node="live">
+          <span class="cat">Milestone</span>
+          <span class="t">Client live</span>
+          <span class="s">Integration in production</span>
+        </div>
+        <div class="branch r2c2" aria-hidden="true"><span class="b-ok">success → done</span><span>·</span><span class="b-issue">issue ↓</span></div>
+        <div class="node cat-gray mini r3c2" role="button" tabindex="0" data-node="request">
+          <span class="t">Request filed</span>
+          <span class="s">Question, bug, or complaint</span>
+        </div>
+        <div class="mchev" aria-hidden="true">↓</div>
+
+        <div class="node cat-violet r3c3" role="button" tabindex="0" data-node="intake">
+          <span class="cat">Ownership</span>
+          <span class="t">Support / Solutions intake</span>
+          <span class="s">One owner, end to end</span>
+        </div>
+        <div class="mchev" aria-hidden="true">↓</div>
+
+        <div class="node cat-violet r3c4" role="button" tabindex="0" data-node="loop">
+          <span class="cat">Ownership</span>
+          <span class="t">Ownership loop</span>
+          <span class="s">Seven stages · three tracks</span>
+          <button class="expand" id="loop-toggle" aria-expanded="false" aria-controls="loopwrap">
+            <span class="lbl">View the tracks &amp; stages</span><span class="ch">▾</span>
+          </button>
+        </div>
+        <div class="mchev" aria-hidden="true">↓</div>
+
+        <div class="stackbox r1c5s3">
+          <span class="cap">Escalation tiers</span>
+          <div class="node cat-green" role="button" tabindex="0" data-node="t1">
+            <span class="t">Tier 1 — self-serve</span>
+            <span class="s">I can fix it myself</span>
+          </div>
+          <div class="node cat-amber" role="button" tabindex="0" data-node="t2">
+            <span class="t">Tier 2 — team fix</span>
+            <span class="s">Solutions + light eng</span>
+          </div>
+          <div class="node cat-red" role="button" tabindex="0" data-node="t3">
+            <span class="t">Tier 3 — escalate</span>
+            <span class="s">Engineering + Product</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="loopwrap" id="loopwrap">
+    <h3>Inside the ownership loop</h3>
+    <p class="sub">One loop, three depths. Click a track to light up the stages it runs — each track feeds its matching tier in the flow above.</p>
+
+    <div class="tracks">
+      <div class="node track cat-green" role="button" tabindex="0" aria-pressed="false" data-track="t1" data-stages="st1,st2,st3,st6">
+        <span class="ttag">Tier 1</span>
+        <span class="cat">Track 1 · quick fix</span>
+        <span class="t">Simple — hand them the fix</span>
+        <div class="chips"><b>Reproduce</b>›<b>Isolate</b>›<b>Diagnose</b>›<b class="hot">Fix sent · done</b></div>
+        <span class="s">Known errors, client-side mistakes, doc answers. The loop runs in minutes, almost automatically.</span>
+        <button class="tinfo" data-panel="trk1">Open playbook ›</button>
+      </div>
+      <div class="node track cat-amber" role="button" tabindex="0" aria-pressed="false" data-track="t2" data-stages="st1,st2,st3,st4,st5,st6">
+        <span class="ttag">Tier 2</span>
+        <span class="cat">Track 2 · solutions-run</span>
+        <span class="t">Complicated — solve or escalate?</span>
+        <div class="chips"><b>Reproduce</b>›<b>Isolate</b>›<b>Diagnose</b>›<b class="hot">Decide</b>›<b>Resolve</b>›<b>Verify</b>›<b>Communicate</b></div>
+        <span class="s">Known issue with a runbook · client-side integration · documented behavior. Runs deep — keep the partner updated while it takes time.</span>
+        <button class="tinfo" data-panel="trk2">Open playbook ›</button>
+      </div>
+      <div class="node track cat-red" role="button" tabindex="0" aria-pressed="false" data-track="t3" data-stages="st1,st2,st3,st5,st6,st7">
+        <span class="ttag">Tier 3</span>
+        <span class="cat">Track 3 · engineering</span>
+        <span class="t">Escalate — perfect hand-off</span>
+        <div class="chips"><b>Reproduce</b>›<b>Isolate</b>›<b>Diagnose</b>›<b class="hot">Escalate</b>›<b>Verify</b>›<b>Communicate</b>›<b>Prevent</b></div>
+        <span class="s">Reproducible bug · needs a code change · product work required. Hand engineering the perfect documentation.</span>
+        <button class="tinfo" data-panel="trk3">Open playbook ›</button>
+      </div>
+    </div>
+
+    <div class="stagecap">The seven stages — full reference</div>
+    <div class="stages">
+      <div class="stage" role="button" tabindex="0" data-node="st1"><span class="n">01</span><div class="t">Intake &amp; reproduce</div><div class="s">Recreate it reliably</div></div>
+      <div class="stage" role="button" tabindex="0" data-node="st2"><span class="mod">MODULE</span><span class="n">02</span><div class="t">Isolate</div><div class="s">Isolation ladder</div></div>
+      <div class="stage" role="button" tabindex="0" data-node="st3"><span class="mod">MODULE</span><span class="n">03</span><div class="t">Diagnose</div><div class="s">Hypothesis debugging</div></div>
+      <div class="stage" role="button" tabindex="0" data-node="st4"><span class="n">04</span><div class="t">Resolve</div><div class="s">Ship the fix</div></div>
+      <div class="stage" role="button" tabindex="0" data-node="st5"><span class="n">05</span><div class="t">Verify</div><div class="s">Confirm in the real path</div></div>
+      <div class="stage" role="button" tabindex="0" data-node="st6"><span class="mod">MODULE</span><span class="n">06</span><div class="t">Communicate</div><div class="s">Translation layer</div></div>
+      <div class="stage" role="button" tabindex="0" data-node="st7"><span class="mod">MODULE</span><span class="n">07</span><div class="t">Prevent</div><div class="s">Selection engine</div></div>
+    </div>
+    <div class="loopreturn">↻&nbsp; Prevent learnings feed back into the <b>self-serve docs</b> — the loop closes at enablement.</div>
+  </div>
+
+  <!-- ================= SYSTEM 2 ================= -->
+  <section class="sys" id="system-2">
+    <div class="sys-head">
+      <span class="sys-num">SYS&nbsp;02</span>
+      <h2>Cross-functional operating system</h2>
+    </div>
+    <p class="lede">Client and prospect feedback enters through the compiler and comes out as a framed problem. It gets scored in the weighting engine &mdash; where Sales, Product, and Engineering live as the weights &mdash; and lands with the broker.</p>
+
+    <div class="overview">
+      <div class="stagecap">Where solutions sits</div>
+      <div class="flow" id="flow-ov">
+        <svg class="wires" aria-hidden="true"></svg>
+        <div class="flow-grid" id="g0">
+          <div class="col ovleft">
+            <div class="ovnode" role="button" tabindex="0" data-node="sales">Sales / partnerships</div>
+            <div class="ovnode" role="button" tabindex="0" data-node="cust">Customers</div>
+          </div>
+          <div class="ovnode ovhub" role="button" tabindex="0" data-node="broker">
+            <span class="t">Solutions</span>
+            <span class="s">Roadmap broker between both sides</span>
+          </div>
+          <div class="col ovright">
+            <div class="ovnode" role="button" tabindex="0" data-node="product">Product</div>
+            <div class="ovnode" role="button" tabindex="0" data-node="eng">Engineering</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--cyan)"></i>Inputs &amp; translation</span>
+      <span><i style="background:var(--violet)"></i>Brokerage</span>
+      <span><i style="background:var(--pink)"></i>Relationship practices</span>
+      <span><i style="background:var(--green)"></i>T1</span>
+      <span><i style="background:var(--amber)"></i>T2</span>
+      <span><i style="background:var(--red)"></i>T3</span>
+    </div>
+
+    <div class="flow" id="flow-s2">
+      <svg class="wires" aria-hidden="true"></svg>
+      <div class="flow-grid" id="g2">
+
+        <div class="node cat-gray mini fit r1c1" role="button" tabindex="0" data-node="cust">
+          <span class="t">Client / prospect</span>
+        </div>
+        <div class="branch r2c1" id="custlabel" aria-hidden="true"><span class="b-issue">issue · feedback ↓</span></div>
+
+        <div class="node cat-cyan r3c1" role="button" tabindex="0" data-node="compiler">
+          <span class="cat">Translation</span>
+          <span class="t">Feedback compiler</span>
+          <span class="s">Strip emotion → symptom to need → quantify → frame as problem</span>
+        </div>
+        <div class="mchev" aria-hidden="true">↓</div>
+
+        <div class="node cat-cyan r3c2" role="button" tabindex="0" data-node="weight">
+          <span class="cat">Scoring</span>
+          <span class="t">Weighting engine</span>
+          <span class="s">Impact · urgency · breadth · effort. Nothing moves unweighed.</span>
+          <button class="expand" id="weight-toggle" aria-expanded="false" aria-controls="weightbook">
+            <span class="lbl">View the weighting engine</span><span class="ch">▾</span>
+          </button>
+        </div>
+        <div class="mchev" aria-hidden="true">↓</div>
+
+        <div class="node cat-violet r3c3" role="button" tabindex="0" data-node="broker">
+          <span class="cat">Brokerage</span>
+          <span class="t">Roadmap broker</span>
+          <span class="s">Jump the line vs wait for the rhythm</span>
+          <button class="expand" id="broker-toggle" aria-expanded="false" aria-controls="brokerwrap" style="margin-top:11px">
+            <span class="lbl">Open the broker playbook</span><span class="ch">▾</span>
+          </button>
+        </div>
+        <div class="mchev" aria-hidden="true">↓</div>
+
+        <div class="stackbox r3c4" id="stack2">
+          <span class="cap">Support stack</span>
+          <div class="node cat-green" role="button" tabindex="0" data-node="s2t1">
+            <span class="t">Tier 1 — self-serve</span><span class="s">Support and docs</span>
+          </div>
+          <div class="node cat-amber" role="button" tabindex="0" data-node="s2t2">
+            <span class="t">Tier 2 — team fix</span><span class="s">Solutions handles it</span>
+          </div>
+          <div class="node cat-red" role="button" tabindex="0" data-node="s2t3">
+            <span class="t">Tier 3 — escalate</span><span class="s">Engineering + Product</span>
+          </div>
+        </div>
+        <div class="col r4c4">
+          <div class="subarrow" aria-hidden="true">↓</div>
+          <button class="expand pink" id="after-toggle" aria-expanded="false" aria-controls="afterwrap">
+            <span class="lbl">Conflict resolution &amp; health</span><span class="ch">▾</span>
+          </button>
+          <div class="afterwrap" id="afterwrap">
+            <div class="node cat-pink mini" role="button" tabindex="0" data-node="conflict">
+              <span class="t">Conflict resolution</span>
+              <span class="s">Level-set · both hear the why · honest</span>
+            </div>
+            <div class="metric" aria-label="System health metric: share resolved before tier 3">
+              <div class="ml">System health</div>
+              <div class="mv">% resolved before tier 3</div>
+              <div class="ms">The number that proves engineering is protected</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="brokerwrap" id="weightbook">
+      <h3>Inside the weighting engine</h3>
+      <p class="sub">Every ask is scored on the same scale before anyone argues about priority.</p>
+
+      <div class="wk-grid">
+        <div class="bkcard cat-gray">
+          <span class="cat">Sales / partnerships</span>
+          <ul class="plist">
+            <li>Cares about revenue — deal value, likelihood, timeline</li>
+            <li>A weight on the engine, not a bypass</li>
+          </ul>
+        </div>
+        <div class="bkcard cat-gray">
+          <span class="cat">Product</span>
+          <ul class="plist">
+            <li>Cares about the vision — a coherent roadmap</li>
+            <li>Features that generalize, not one-off builds</li>
+          </ul>
+        </div>
+        <div class="bkcard cat-gray">
+          <span class="cat">Engineering</span>
+          <ul class="plist">
+            <li>Cares about stability &amp; focus — effort and interruption cost</li>
+            <li>The sprint is the rhythm</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="bkstd wkstd">
+        <span class="bp">The scoring variables</span>
+        <ul class="plist cols2">
+          <li>Impact — what does it move?</li>
+          <li>Urgency — what does waiting cost?</li>
+          <li>Breadth — one client, or a pattern?</li>
+          <li>Effort — what does it cost to build?</li>
+          <li>Contract or revenue on the line?</li>
+          <li>Workaround — or dead in the water?</li>
+        </ul>
+        <p class="wkfoot">Argue at the score, not the decision. One visible queue. Nothing reaches the broker unweighed.</p>
+      </div>
+    </div>
+
+    <div class="brokerwrap" id="brokerwrap">
+      <h3>The roadmap broker playbook</h3>
+      <p class="sub">One process, one standard. Three steps take an ask from raw signal to a tier-3 escalation — and the credibility model is the standard every step runs on. Click a step for its depth.</p>
+
+      <div class="bksteps">
+        <div class="node bsec cat-cyan" role="button" tabindex="0" aria-pressed="false" data-bsec="b1">
+          <span class="cat">Step 01 · triage &amp; evidence</span>
+          <span class="t">Do the triage yourself</span>
+          <div class="chips"><b>Reproduce</b>›<b>Logs &amp; versions</b>›<b>Rule out</b>›<b class="hot">Customer impact</b></div>
+          <span class="s">Bring every technical detail — and what it means to the customer.</span>
+        </div>
+        <div class="node bsec cat-violet" role="button" tabindex="0" aria-pressed="false" data-bsec="b2">
+          <span class="cat">Step 02 · the escalation standard</span>
+          <span class="t">Build the perfect package</span>
+          <div class="chips"><b>Minimal repro</b>›<b>Impact upfront</b>›<b>Ruled out</b>›<b class="hot">Specific ask</b></div>
+          <span class="s">Good escalations save engineer time. Bad ones create work.</span>
+        </div>
+        <div class="node bsec cat-amber" role="button" tabindex="0" aria-pressed="false" data-bsec="b3">
+          <span class="cat">Step 03 · advocate &amp; weigh</span>
+          <span class="t">Push without derailing</span>
+          <div class="chips"><b>Weighted score</b>›<b>Roadmap check</b>›<b>Timing</b>›<b class="hot">Carry the no</b></div>
+          <span class="s">Protect the roadmap as much as you push on it.</span>
+        </div>
+        <div class="node bkterm cat-red" role="button" tabindex="0" id="bkt3">
+          <span class="cat">Destination</span>
+          <span class="t">Tier 3</span>
+          <span class="s">The hand-off they thank you for</span>
+        </div>
+      </div>
+
+      <div class="bsec-detail" id="bsec-detail">
+        <div class="bk-grid">
+          <div class="bkcard" id="bsec-imp">
+            <span class="cat">The important parts</span>
+            <ul class="plist" id="bsec-imp-list"></ul>
+          </div>
+          <div class="bkcard cat-red">
+            <span class="cat">How it feeds tier 3</span>
+            <ul class="plist" id="bsec-t3-list"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="bkstd">
+        <span class="bp">The standard — the credibility model</span>
+        <p>Every escalation should save an engineer time, not create work. The whole posture is making their lives easier — never pretending you can do their job. Run every step on this standard, and engineering ends up thanking you:</p>
+        <ul class="plist cols2">
+          <li><strong>Be a load reducer, not a load adder — every interaction costs focus or saves it</strong></li>
+          <li>Do your own triage first, every time</li>
+          <li>Never make them chase you — they should never have to ask twice</li>
+          <li>Admit the edge of your knowledge</li>
+          <li>Give the credit outward when it ships</li>
+          <li>Build the docs and runbooks with them, so every hand-off gets lighter</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="fin">
+    <span>OPS / SYSTEMS — the Solutions ↔ Engineering escalation line</span>
+    <span>Own the bug. Protect the build.</span>
+  </div>
+</footer>
+
+<div class="backdrop" id="backdrop"></div>
+<aside class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title">
+  <div class="panel-head">
+    <span class="cat" id="panel-cat">Node</span>
+    <button class="panel-close" id="panel-close" aria-label="Close panel">✕</button>
+  </div>
+  <div class="panel-body">
+    <h3 id="panel-title"></h3>
+    <p id="panel-desc"></p>
+    <ul class="plist" id="panel-list"></ul>
+  </div>
+</aside>
+
+<script>
+"use strict";
+
+var C = {
+  cyan: getVar('--cyan'), violet: getVar('--violet'), green: getVar('--green'),
+  amber: getVar('--amber'), red: getVar('--red'), pink: getVar('--pink'), gray: '#7C8AA0'
+};
+function getVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+var CONTENT = {
+  docs:    { cat:'Enablement', color:C.cyan, title:'Self-serve documentation',
+    desc:'Everything a client needs to integrate without talking to a human. The better this layer is, the smaller everything downstream gets.',
+    list:['Onboarding documentation for new developers','API docs — complete, current, searchable','SDKs for the main languages','Error catalogs — every error explained, with the fix','Working code examples for the common paths','Instrument it: log every error and point of friction'] },
+  live:    { cat:'Milestone', color:C.gray, title:'Client live',
+    desc:'The integration is running in production. From here it\u2019s one of two paths: success and silence, or a question that becomes a request.',
+    list:['Happy path: nothing else happens','Question path: a request gets filed and flows right'] },
+  request: { cat:'Intake', color:C.gray, title:'Request filed',
+    desc:'A question, bug, error, or complaint enters the system. From this moment it has to have exactly one owner.',
+    list:['Capture the raw report verbatim','Tag severity and client impact at the door','Route to Solutions — never let it sit unassigned'] },
+  intake:  { cat:'Ownership', color:C.violet, title:'Support / Solutions intake',
+    desc:'Solutions picks it up and owns it end to end. No hand-off limbo, no "someone is looking at it." One name is attached until it is closed.',
+    list:['One named owner from open to close','Owner drives the ownership loop','Owner is the single voice back to the client'] },
+  loop:    { cat:'Ownership', color:C.violet, title:'The ownership loop',
+    desc:'Seven stages that take an issue from raw report to permanent prevention — run at three depths. The escalation question after diagnosing decides the track: quick fix, solutions-run, or engineering hand-off.',
+    list:['Intake & reproduce','Isolate — isolation ladder','Diagnose — hypothesis debugging','Resolve','Verify','Communicate — translation layer','Prevent — selection engine'] },
+  trk1:    { cat:'Track 1 · Quick fix', color:C.green, title:'Quick fix — support solves it on the spot',
+    desc:'The simple lane. Reproduce, isolate, diagnose — fast — then tell the client how to fix it. Done, often in one touch.',
+    list:['Known error with a documented fix','Client-side mistake or config issue','Question the docs already answer','The loop runs in minutes — communicate the fix and close','Every quick fix is a signal: could the docs have caught this earlier?'] },
+  trk2:    { cat:'Track 2 · Solutions-run', color:C.amber, title:'Solutions runs it — solve or escalate?',
+    desc:'The decision lane. After diagnosing, ask the escalation question: can I solve this myself, or does it genuinely need engineering?',
+    list:['Solve it yourself: known issue with a runbook','Solve it yourself: client-side integration problem','Solve it yourself: documented behavior, not a bug','Run the full loop with depth — isolation ladder, hypothesis debugging','Verify properly, and keep the partner updated while it takes time'] },
+  trk3:    { cat:'Track 3 · Engineering', color:C.red, title:'Escalate — hand over the perfect package',
+    desc:'Something is genuinely wrong: a reproducible bug, a needed code change, or product work. Your job shifts to making engineering\u2019s job effortless.',
+    list:['Reproducible bug — something actually going wrong in the product','Needs a code change, or new product work is required','Hand-off package: repro steps, isolation findings, tested hypothesis, quantified impact','You still own it after hand-off: verify the fix, communicate to the client, run prevent'] },
+  t1:      { cat:'Tier 1', color:C.green, title:'Tier 1 — self-serve',
+    desc:'The individual Solutions person can fix it alone. Config, docs gap, client-side mistake. Zero engineering load.',
+    list:['Fix it, verify it, close it','If the docs could have prevented it — update the docs'] },
+  t2:      { cat:'Tier 2', color:C.amber, title:'Tier 2 — team fix',
+    desc:'The Solutions team resolves it with light engineering — a small patch, a data correction, a known-issue workaround.',
+    list:['Solutions leads, engineering assists','Keep the eng ask small and precise','Owner still holds the thread with the client'] },
+  t3:      { cat:'Tier 3', color:C.red, title:'Tier 3 — escalate',
+    desc:'Real engineering and product work. This is the expensive lane — everything before it exists so only true tier-3 issues arrive here.',
+    list:['Arrives fully triaged: repro, isolation, hypothesis','Framed as a problem, not a demand','Owner brokers timeline back to the client'] },
+
+  st1: { cat:'Stage 01', color:C.violet, title:'Intake & reproduce',
+    desc:'Before touching anything, recreate the issue reliably. If you can\u2019t reproduce it, you can\u2019t verify a fix.',
+    list:['Capture exact steps, payloads, environment','Reproduce it on demand','If it won\u2019t reproduce — that is the first finding, not a dead end'] },
+  st2: { cat:'Stage 02 · Module', color:C.violet, title:'Isolate — the isolation ladder',
+    desc:'Climb the ladder until you know where the problem actually lives.',
+    list:['Reproduce it vs rule it out','Inspect the boundaries — what goes in, what comes out','Walk the stack layer by layer','Assign it to a clear owner: their code, our code, or the seam'] },
+  st3: { cat:'Stage 03 · Module', color:C.violet, title:'Diagnose — hypothesis debugging',
+    desc:'Be systematic. Guessing is the expensive way to debug.',
+    list:['State a testable hypothesis','Binary-search the problem space — cut it in half every test','Test, don\u2019t guess','Root cause found means you can explain the mechanism'] },
+  st4: { cat:'Stage 04', color:C.violet, title:'Resolve',
+    desc:'Ship the fix — code, config, docs, or workaround. Pick the smallest change that actually resolves the root cause.',
+    list:['Fix the cause, not the symptom','Note whether the fix is temporary or permanent'] },
+  st5: { cat:'Stage 05', color:C.violet, title:'Verify',
+    desc:'Confirm the fix in the client\u2019s real path, not just in your repro.',
+    list:['Re-run the original repro — it must fail to fail','Verify in production conditions','Watch the error logs after release'] },
+  st6: { cat:'Stage 06 · Module', color:C.violet, title:'Communicate — the translation layer',
+    desc:'Translate the technical story into the client\u2019s story, in this order:',
+    list:['Lead with customer impact','State the constraint plainly','Offer the workaround — labeled temporary or permanent','Set honest expectations','Confirm the outcome delivers the value they wanted'] },
+  st7: { cat:'Stage 07 · Module', color:C.violet, title:'Prevent — the selection engine',
+    desc:'Make sure this class of issue never comes back. Then feed the learning back to enablement.',
+    list:['Name the recurring pattern','Pick the right fix type: docs, tooling, code, or process','Re-measure — did the pattern actually stop?','Push the learning into the self-serve documentation'] },
+
+  cust:    { cat:'Voice', color:C.gray, title:'Client / prospect',
+    desc:'The raw customer voice — feature asks, complaints, deal blockers — flowing down into the compiler as issues and feedback. It arrives emotional and unstructured; the compiler\u2019s job is next.',
+    list:['Log everything — nothing is lost in a hallway conversation','Prospects count as much as clients: pre-sale asks reveal roadmap gaps','Raw quotes stay attached — the compiler frames, it doesn\u2019t erase'] },
+  sales:   { cat:'Weight', color:C.gray, title:'Sales / partnerships',
+    desc:'Wants revenue. Sales doesn\u2019t feed the compiler — its pull is applied at the weighting engine: deal size, likelihood, and timeline become weight on the score.',
+    list:['Quantify: deal value, likelihood, timeline','Partner asks count here too — channel pressure is still pressure','A weight on the engine, not a bypass around it'] },
+  product: { cat:'Weight', color:C.gray, title:'Product',
+    desc:'Wants the vision to hold. Product\u2019s weight pushes back on one-off asks that fragment the roadmap. Also valid — also applied at the engine.',
+    list:['Does the ask generalize or is it a one-off?','Does it move the roadmap or splinter it?'] },
+  eng:     { cat:'Weight', color:C.gray, title:'Engineering',
+    desc:'Wants stability and focus. Engineering\u2019s weight is the effort and interruption cost — the sprint is the rhythm this system is built to respect.',
+    list:['Effort and interruption cost count in the score','Protecting focus is a feature of this system, not a bug'] },
+  compiler:{ cat:'Translation', color:C.cyan, title:'Feedback compiler',
+    desc:'Customer and prospect feedback enters here — and only here. The compiler translates it: emotion out, engineering problem in.',
+    list:['Strip the emotion — keep the facts','Translate symptom to underlying need','Quantify the impact: revenue, users, frequency','Frame it as a problem to solve, so engineering can act'] },
+  weight:  { cat:'Scoring', color:C.cyan, title:'Weighting engine',
+    desc:'The compiler\u2019s output gets scored here, with Sales, Product, and Engineering applying their weights on the same scale. Their opinions shape the score — they don\u2019t bypass it.',
+    list:['Impact: what does it move?','Urgency: what does waiting cost?','Breadth: one client or many?','Effort: what does it cost to build? (engineering\u2019s weight)','Score each dimension simply (1–5) — argue at the score, not the decision','Re-weigh when new evidence lands: a second client asking changes breadth','One visible list, ranked by score — all three departments see the same queue','Nothing reaches the broker unweighed'] },
+  broker:  { cat:'Brokerage', color:C.violet, title:'Roadmap broker',
+    desc:'Solutions holds the seat between customers and the sprint. Two skills hold it: escalations engineering thanks you for, and advocacy that never torches the roadmap. Expand the broker playbook in the flow for the full standard.',
+    list:['Jump the line: broad, urgent, weighted-high — and rare by design','Wait for the rhythm: real, but batched to the sprint boundary','Every escalation saves an engineer time — never creates work','Carry the "no" back to the client yourself','Every decision gets a why, recorded once, repeated consistently','Credibility earns this seat (see the nested model)'] },
+  cred:    { cat:'Practice', color:C.pink, title:'Credibility model',
+    desc:'Lives inside the broker role — the standing posture that earns the seat. The goal is simple: make their lives easier, and never pretend you can do their job.',
+    list:['Use their language — repro steps, logs, versions, diffs. Not vibes.','Do your own triage first, every time','Be a load reducer, not a load adder — every interaction costs focus or saves it','Do your homework before you knock','Never make them chase you — they should never have to ask twice','Admit the edge of your knowledge','Give the credit outward when it ships','Build the docs and runbooks with them, so every hand-off gets lighter'] },
+  s2t1:    { cat:'Tier 1', color:C.green, title:'Tier 1 — self-serve / support',
+    desc:'Handled by support and the docs. No engineering drain.',
+    list:['Route here aggressively — it\u2019s the cheapest lane'] },
+  s2t2:    { cat:'Tier 2', color:C.amber, title:'Tier 2 — Solutions team',
+    desc:'Solutions absorbs it. Light lift, no sprint interruption.',
+    list:['Solutions handles it end to end','Engineering consulted, not conscripted'] },
+  s2t3:    { cat:'Tier 3', color:C.red, title:'Tier 3 — engineering',
+    desc:'The only lane that touches the sprint. The whole system upstream exists to keep this lane clean and rare.',
+    list:['Arrives weighed, triaged, and framed','Broker owns the why on both sides'] },
+  conflict:{ cat:'Aftermath', color:C.pink, title:'Conflict resolution',
+    desc:'Activates after the routing decision lands — when the client hears "not now" or engineering hears "this jumps the line."',
+    list:['Level-set expectations on both sides','Both sides hear the why','If there\u2019s nothing more to do, say so — transparent, open, honest'] }
+};
+
+/* ---------------- detail panel ---------------- */
+var panel = document.getElementById('panel');
+var backdrop = document.getElementById('backdrop');
+var lastFocus = null;
+
+function openPanel(id){
+  var d = CONTENT[id];
+  if(!d) return;
+  document.getElementById('panel-title').textContent = d.title;
+  document.getElementById('panel-desc').textContent = d.desc;
+  var cat = document.getElementById('panel-cat');
+  cat.textContent = d.cat;
+  cat.style.setProperty('--cat', d.color);
+  var list = document.getElementById('panel-list');
+  list.innerHTML = '';
+  (d.list || []).forEach(function(item){
+    var li = document.createElement('li');
+    li.textContent = item;
+    list.appendChild(li);
+  });
+  lastFocus = document.activeElement;
+  panel.classList.add('open');
+  backdrop.classList.add('open');
+  document.getElementById('panel-close').focus();
+}
+function closePanel(){
+  panel.classList.remove('open');
+  backdrop.classList.remove('open');
+  if(lastFocus && lastFocus.focus) lastFocus.focus();
+}
+
+
+/* weighting engine expand/collapse */
+var weightToggle = document.getElementById('weight-toggle');
+var weightBook = document.getElementById('weightbook');
+weightToggle.addEventListener('click', function(e){
+  e.stopPropagation();
+  var open = weightBook.classList.toggle('open');
+  weightToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  weightToggle.querySelector('.lbl').textContent = open ? 'Hide the weighting engine' : 'View the weighting engine';
+  if(open){
+    setTimeout(function(){
+      weightBook.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }, 240);
+  }
+});
+function openWeightBook(){
+  var wasOpen = weightBook.classList.contains('open');
+  if(!wasOpen){
+    weightBook.classList.add('open');
+    weightToggle.setAttribute('aria-expanded','true');
+    weightToggle.querySelector('.lbl').textContent = 'Hide the weighting engine';
+  }
+  setTimeout(function(){
+    weightBook.scrollIntoView({ behavior:'smooth', block: wasOpen ? 'nearest' : 'start' });
+  }, wasOpen ? 0 : 280);
+}
+
+/* broker playbook expand/collapse */
+var brokerToggle = document.getElementById('broker-toggle');
+var brokerWrap = document.getElementById('brokerwrap');
+brokerToggle.addEventListener('click', function(e){
+  e.stopPropagation();
+  var open = brokerWrap.classList.toggle('open');
+  brokerToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  brokerToggle.querySelector('.lbl').textContent = open ? 'Hide the broker playbook' : 'View the broker playbook';
+  if(!open) clearBsec();
+  if(open){
+    setTimeout(function(){
+      brokerWrap.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }, 240);
+  }
+});
+
+/* broker disciplines: select one, see its depth + its path into tier 3 */
+var BSEC = {
+  b1: { color: C.cyan, label: 'Triage & evidence — the important parts',
+    imp: [
+      'Reproduce it yourself before anyone else touches it',
+      'Capture the technical detail: logs, versions, environment, exact steps',
+      'Quantify the customer side: who\u2019s blocked, what\u2019s at stake'
+    ],
+    t3: [
+      'Turns "something\u2019s broken" into "here\u2019s exactly what\u2019s broken"',
+      'Better triage, faster yes'
+    ]},
+  b2: { color: C.violet, label: 'The escalation standard — the important parts',
+    imp: [
+      'Severity and business impact, stated upfront',
+      'What you ruled out, the fix you attempted, and a specific ask — not "help"',
+      'Never make them redo triage, guess urgency, or chase details'
+    ],
+    t3: [
+      'The package IS the tier-3 hand-off — engineering opens it ready to work',
+      'Done right, they thank you — trust compounds with every clean package'
+    ]},
+  b3: { color: C.amber, label: 'Advocate & weigh — the important parts',
+    imp: [
+      'Bring the weighted reasoning behind everything',
+      'Bring the technical use case',
+      'Never cry wolf — escalate rarely, so the ones you send land'
+    ],
+    t3: [
+      'A rare escalation is a loud one — restraint is why yours land'
+    ]}
+};
+var bsecDetail = document.getElementById('bsec-detail');
+var curBsec = null;
+
+function clearBsec(){
+  document.querySelectorAll('.bsec.sel').forEach(function(b){
+    b.classList.remove('sel');
+    b.setAttribute('aria-pressed','false');
+  });
+  bsecDetail.classList.remove('open');
+  ['s2t1','s2t2','s2t3'].forEach(function(id){
+    var n = document.querySelector('[data-node="'+id+'"]');
+    if(n) n.classList.remove('hlt','dim');
+  });
+  curBsec = null;
+}
+
+function selectBsec(el){
+  var key = el.getAttribute('data-bsec');
+  if(curBsec === key){ clearBsec(); return; }
+  clearBsec();
+  curBsec = key;
+  el.classList.add('sel');
+  el.setAttribute('aria-pressed','true');
+  var cfg = BSEC[key];
+  var impCard = document.getElementById('bsec-imp');
+  impCard.style.setProperty('--cat', cfg.color);
+  impCard.querySelector('.cat').textContent = cfg.label;
+  var impList = document.getElementById('bsec-imp-list');
+  impList.innerHTML = '';
+  cfg.imp.forEach(function(item){
+    var li = document.createElement('li'); li.textContent = item; impList.appendChild(li);
+  });
+  var t3List = document.getElementById('bsec-t3-list');
+  t3List.innerHTML = '';
+  cfg.t3.forEach(function(item){
+    var li = document.createElement('li'); li.textContent = item; t3List.appendChild(li);
+  });
+  bsecDetail.classList.add('open');
+  ['s2t1','s2t2','s2t3'].forEach(function(id){
+    var n = document.querySelector('[data-node="'+id+'"]');
+    if(!n) return;
+    if(id === 's2t3') n.classList.add('hlt');
+    else n.classList.add('dim');
+  });
+}
+
+document.getElementById('bkt3').addEventListener('click', function(){
+  ['s2t1','s2t2','s2t3'].forEach(function(id){
+    var n = document.querySelector('[data-node="'+id+'"]');
+    if(!n) return;
+    n.classList.remove('hlt','dim');
+    if(id === 's2t3') n.classList.add('hlt');
+    else n.classList.add('dim');
+  });
+  var t3 = document.querySelector('[data-node="s2t3"]');
+  if(t3) t3.scrollIntoView({ behavior:'smooth', block:'center' });
+});
+
+document.querySelectorAll('.bsec').forEach(function(el){
+  el.addEventListener('click', function(e){
+    selectBsec(el);
+  });
+  el.addEventListener('keydown', function(e){
+    if(e.target !== el) return;
+    if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      selectBsec(el);
+    }
+  });
+});
+
+document.getElementById('panel-close').addEventListener('click', closePanel);
+
+/* aftermath dropdown under the support stack */
+var afterToggle = document.getElementById('after-toggle');
+var afterWrap = document.getElementById('afterwrap');
+afterToggle.addEventListener('click', function(e){
+  e.stopPropagation();
+  var open = afterWrap.classList.toggle('open');
+  afterToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+
+backdrop.addEventListener('click', closePanel);
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape') closePanel();
+});
+
+/* a node only fires if the event's nearest interactive ancestor is itself —
+   lets the nested credibility card and the expand button live inside nodes */
+function ownsEvent(el, e){
+  var t = e.target.closest('[data-node],.expand');
+  return t === el;
+}
+/* tier nodes in System 1 open the loop and select their matching track;
+   everything else opens its playbook panel */
+function activateNode(el){
+  var id = el.getAttribute('data-node');
+  if(id === 't1' || id === 't2' || id === 't3'){
+    openLoopAndSelect(id);
+    return;
+  }
+  if(id === 's2t3'){
+    openBrokerPlaybook();
+    return;
+  }
+  if(id === 'sales' || id === 'product' || id === 'eng'){
+    openWeightBook();
+    return;
+  }
+  openPanel(id);
+}
+
+/* tier 3 in System 2 opens the broker playbook — that's where escalations are made */
+function openBrokerPlaybook(){
+  var wasOpen = brokerWrap.classList.contains('open');
+  if(!wasOpen){
+    brokerWrap.classList.add('open');
+    brokerToggle.setAttribute('aria-expanded','true');
+    brokerToggle.querySelector('.lbl').textContent = 'Hide the broker playbook';
+  }
+  ['s2t1','s2t2','s2t3'].forEach(function(id){
+    var n = document.querySelector('[data-node="'+id+'"]');
+    if(!n) return;
+    n.classList.remove('hlt','dim');
+    if(id === 's2t3') n.classList.add('hlt');
+    else n.classList.add('dim');
+  });
+  setTimeout(function(){
+    brokerWrap.scrollIntoView({ behavior:'smooth', block: wasOpen ? 'nearest' : 'start' });
+  }, wasOpen ? 0 : 280);
+}
+document.querySelectorAll('[data-node]').forEach(function(el){
+  el.addEventListener('click', function(e){
+    if(!ownsEvent(el, e)) return;
+    activateNode(el);
+  });
+  el.addEventListener('keydown', function(e){
+    if(!ownsEvent(el, e)) return;
+    if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      activateNode(el);
+    }
+  });
+});
+
+/* ---------------- loop expand ---------------- */
+var loopToggle = document.getElementById('loop-toggle');
+var loopWrap = document.getElementById('loopwrap');
+loopToggle.addEventListener('click', function(e){
+  e.stopPropagation();
+  var open = loopWrap.classList.toggle('open');
+  loopToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  loopToggle.querySelector('.lbl').textContent = open ? 'Hide the tracks & stages' : 'View the tracks & stages';
+  if(!open) clearTrack();
+  if(open){
+    setTimeout(function(){
+      loopWrap.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }, 240);
+  }
+});
+
+/* ---------------- track selection: highlight the stages a track runs ---------------- */
+var TRACK_COLOR = { t1:C.green, t2:C.amber, t3:C.red };
+var curTrack = null;
+
+function clearTrack(){
+  document.querySelectorAll('.track.sel').forEach(function(t){
+    t.classList.remove('sel');
+    t.setAttribute('aria-pressed','false');
+  });
+  document.querySelectorAll('.stage').forEach(function(s){
+    s.classList.remove('hl','dim');
+    s.style.removeProperty('--hlc');
+  });
+  ['t1','t2','t3'].forEach(function(id){
+    var n = document.querySelector('[data-node="'+id+'"]');
+    if(n) n.classList.remove('hlt','dim');
+  });
+  curTrack = null;
+}
+
+function selectTrack(el){
+  var key = el.getAttribute('data-track');
+  if(curTrack === key){ clearTrack(); return; }
+  clearTrack();
+  curTrack = key;
+  el.classList.add('sel');
+  el.setAttribute('aria-pressed','true');
+  var stages = (el.getAttribute('data-stages') || '').split(',');
+  var color = TRACK_COLOR[key] || C.violet;
+  document.querySelectorAll('.stage').forEach(function(s){
+    var id = s.getAttribute('data-node');
+    if(stages.indexOf(id) >= 0){
+      s.classList.add('hl');
+      s.style.setProperty('--hlc', color);
+    } else {
+      s.classList.add('dim');
+    }
+  });
+  ['t1','t2','t3'].forEach(function(id){
+    var n = document.querySelector('[data-node="'+id+'"]');
+    if(!n) return;
+    if(id === key) n.classList.add('hlt');
+    else n.classList.add('dim');
+  });
+}
+
+document.querySelectorAll('.track').forEach(function(el){
+  el.addEventListener('click', function(e){
+    if(e.target.closest('.tinfo')) return;
+    selectTrack(el);
+  });
+  el.addEventListener('keydown', function(e){
+    if(e.target !== el) return;
+    if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      selectTrack(el);
+    }
+  });
+});
+document.querySelectorAll('.tinfo').forEach(function(btn){
+  btn.addEventListener('click', function(e){
+    e.stopPropagation();
+    openPanel(btn.getAttribute('data-panel'));
+  });
+});
+
+/* clicking a tier in the flow opens the loop and lights up its track */
+function openLoopAndSelect(key){
+  var trackEl = document.querySelector('.track[data-track="'+key+'"]');
+  if(!trackEl) return;
+  var wasOpen = loopWrap.classList.contains('open');
+  if(!wasOpen){
+    loopWrap.classList.add('open');
+    loopToggle.setAttribute('aria-expanded','true');
+    loopToggle.querySelector('.lbl').textContent = 'Hide the tracks & stages';
+  }
+  if(curTrack !== key) selectTrack(trackEl);
+  setTimeout(function(){
+    loopWrap.scrollIntoView({ behavior:'smooth', block: wasOpen ? 'nearest' : 'start' });
+  }, wasOpen ? 0 : 280);
+}
+
+/* ---------------- wires ---------------- */
+var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+var LINKS = {
+  'flow-ov': [
+    ['sales','broker',C.cyan], ['cust','broker',C.cyan],
+    ['broker','product',C.violet], ['broker','eng',C.violet]
+  ],
+  'flow-s1': [
+    ['docs','live',C.cyan],
+    ['request','intake',C.violet],
+    ['intake','loop',C.violet],
+    ['loop','t1',C.green], ['loop','t2',C.amber], ['loop','t3',C.red]
+  ],
+  'flow-s2': [
+    ['compiler','weight',C.cyan],
+    ['weight','broker',C.violet],
+    ['broker','s2t1',C.green,'nodot'],
+    ['broker','s2t2',C.amber,'nodot'],
+    ['broker','s2t3',C.red]
+  ]
+};
+
+function nodeEl(flow, ref){
+  if(ref.charAt(0) === '#') return flow.querySelector(ref);
+  return flow.querySelector('[data-node="'+ref+'"]');
+}
+function rectIn(el, root){
+  var r = el.getBoundingClientRect();
+  var b = root.getBoundingClientRect();
+  return {
+    left: r.left - b.left, right: r.right - b.left,
+    top: r.top - b.top, bottom: r.bottom - b.top,
+    cx: r.left - b.left + r.width/2, cy: r.top - b.top + r.height/2
+  };
+}
+function pathFor(f, t){
+  if(t.left >= f.right - 2){
+    var mx = (f.right + t.left)/2;
+    if(Math.abs(f.cy - t.cy) < 6) return 'M'+f.right+' '+f.cy+' L'+(t.left-6)+' '+t.cy;
+    return 'M'+f.right+' '+f.cy+' L'+mx+' '+f.cy+' L'+mx+' '+t.cy+' L'+(t.left-6)+' '+t.cy;
+  }
+  var overlap = Math.min(f.right, t.right) - Math.max(f.left, t.left);
+  if(t.top >= f.bottom - 2 && overlap > 24){
+    var my = (f.bottom + t.top)/2;
+    if(Math.abs(f.cx - t.cx) < 6) return 'M'+f.cx+' '+f.bottom+' L'+t.cx+' '+(t.top-6);
+    return 'M'+f.cx+' '+f.bottom+' L'+f.cx+' '+my+' L'+t.cx+' '+my+' L'+t.cx+' '+(t.top-6);
+  }
+  if(t.top >= f.bottom - 2){
+    return 'M'+f.left+' '+f.cy+' L'+t.cx+' '+f.cy+' L'+t.cx+' '+(t.top-6);
+  }
+  return 'M'+f.cx+' '+f.cy+' L'+t.cx+' '+t.cy;
+}
+
+var SVGNS = 'http://www.w3.org/2000/svg';
+var XLINK = 'http://www.w3.org/1999/xlink';
+
+/* per-flow rendering: the hub overview is a static diagram, not a flowchart */
+var FLOW_OPTS = {
+  'flow-ov': { straight:true, arrows:false, packets:false, dash:'1 6', stroke:'#44547C', width:'1.8' }
+};
+
+function drawFlow(flowId){
+  var flow = document.getElementById(flowId);
+  if(!flow) return;
+  var opts = FLOW_OPTS[flowId] || {};
+  var svg = flow.querySelector('svg.wires');
+  if(getComputedStyle(svg).display === 'none'){ svg.innerHTML = ''; return; }
+  var w = flow.offsetWidth, h = flow.offsetHeight;
+  svg.setAttribute('viewBox','0 0 '+w+' '+h);
+  svg.innerHTML = '';
+
+  var defs = document.createElementNS(SVGNS,'defs');
+  var marker = document.createElementNS(SVGNS,'marker');
+  var mid = 'arr-'+flowId;
+  marker.setAttribute('id', mid);
+  marker.setAttribute('viewBox','0 0 10 10');
+  marker.setAttribute('refX','7'); marker.setAttribute('refY','5');
+  marker.setAttribute('markerWidth','6'); marker.setAttribute('markerHeight','6');
+  marker.setAttribute('orient','auto-start-reverse');
+  var mpath = document.createElementNS(SVGNS,'path');
+  mpath.setAttribute('d','M2 1L8 5L2 9');
+  mpath.setAttribute('fill','none');
+  mpath.setAttribute('stroke','#4A5A74');
+  mpath.setAttribute('stroke-width','1.6');
+  mpath.setAttribute('stroke-linecap','round');
+  mpath.setAttribute('stroke-linejoin','round');
+  marker.appendChild(mpath);
+  defs.appendChild(marker);
+  svg.appendChild(defs);
+
+  (LINKS[flowId] || []).forEach(function(link, i){
+    var fromEl = nodeEl(flow, link[0]);
+    var toEl = nodeEl(flow, link[1]);
+    if(!fromEl || !toEl) return;
+    var f = rectIn(fromEl, flow), t = rectIn(toEl, flow);
+    var d = opts.straight
+      ? 'M'+f.right+' '+f.cy+' L'+t.left+' '+t.cy
+      : pathFor(f, t);
+
+    var p = document.createElementNS(SVGNS,'path');
+    var pid = 'w-'+flowId+'-'+i;
+    p.setAttribute('id', pid);
+    p.setAttribute('d', d);
+    p.setAttribute('fill','none');
+    p.setAttribute('stroke', opts.stroke || 'var(--wire)');
+    p.setAttribute('stroke-width', opts.width || '1.5');
+    p.setAttribute('stroke-linecap','round');
+    if(opts.dash) p.setAttribute('stroke-dasharray', opts.dash);
+    if(opts.arrows !== false) p.setAttribute('marker-end','url(#'+mid+')');
+    svg.appendChild(p);
+
+    if(!reduceMotion && opts.packets !== false && link[3] !== 'nodot'){
+      var dot = document.createElementNS(SVGNS,'circle');
+      dot.setAttribute('r','2.6');
+      dot.setAttribute('fill', link[2] || C.violet);
+      dot.setAttribute('opacity','0.95');
+      var am = document.createElementNS(SVGNS,'animateMotion');
+      var len = p.getTotalLength ? p.getTotalLength() : 300;
+      am.setAttribute('dur', Math.max(1.8, len/110).toFixed(2)+'s');
+      am.setAttribute('repeatCount','indefinite');
+      am.setAttribute('begin', (i*0.45)+'s');
+      var mp = document.createElementNS(SVGNS,'mpath');
+      mp.setAttribute('href','#'+pid);
+      mp.setAttributeNS(XLINK,'xlink:href','#'+pid);
+      am.appendChild(mp);
+      dot.appendChild(am);
+      svg.appendChild(dot);
+    }
+  });
+}
+
+/* center the tier stack on the ownership-loop lane: tier 2 sits even with the loop */
+function alignTiers(){
+  var flow = document.getElementById('flow-s1');
+  if(!flow) return;
+  var stack = flow.querySelector('.stackbox');
+  var loop = flow.querySelector('[data-node="loop"]');
+  if(!stack || !loop) return;
+  var svg = flow.querySelector('svg.wires');
+  if(getComputedStyle(svg).display === 'none'){
+    stack.style.transform = '';
+    stack.dataset.dy = '0';
+    flow.style.paddingBottom = '';
+    return;
+  }
+  var prev = parseFloat(stack.dataset.dy || '0');
+  var sr = stack.getBoundingClientRect();
+  var lr = loop.getBoundingClientRect();
+  var delta = (lr.top + lr.height/2) - (sr.top + sr.height/2);
+  if(Math.abs(delta) >= 1){
+    var dy = prev + delta;
+    stack.style.transform = 'translateY(' + dy.toFixed(1) + 'px)';
+    stack.dataset.dy = dy;
+  }
+  var grid = flow.querySelector('.flow-grid');
+  var gr = grid.getBoundingClientRect();
+  var overflow = (sr.bottom + delta) - gr.bottom;
+  var pad = overflow > 0 ? Math.ceil(overflow) + 24 : 20;
+  var cur = parseFloat(flow.style.paddingBottom || '20');
+  if(Math.abs(cur - pad) >= 1) flow.style.paddingBottom = pad + 'px';
+}
+
+/* pin the client chip + label snug above the compiler, regardless of lane height */
+function alignCust(){
+  var flow = document.getElementById('flow-s2');
+  if(!flow) return;
+  var chip = flow.querySelector('[data-node="cust"]');
+  var label = document.getElementById('custlabel');
+  var compiler = flow.querySelector('[data-node="compiler"]');
+  if(!chip || !label || !compiler) return;
+  var svg = flow.querySelector('svg.wires');
+  if(getComputedStyle(svg).display === 'none'){
+    chip.style.transform = ''; label.style.transform = '';
+    chip.dataset.dy = '0';
+    return;
+  }
+  var prev = parseFloat(chip.dataset.dy || '0');
+  var lb = label.getBoundingClientRect();
+  var cb = compiler.getBoundingClientRect();
+  var delta = (cb.top - 6) - lb.bottom;
+  if(Math.abs(delta) >= 1){
+    var dy = prev + delta;
+    chip.style.transform = 'translateY(' + dy.toFixed(1) + 'px)';
+    label.style.transform = 'translateY(' + dy.toFixed(1) + 'px)';
+    chip.dataset.dy = dy;
+  }
+}
+
+function drawAll(){ alignTiers(); alignCust(); drawFlow('flow-ov'); drawFlow('flow-s1'); drawFlow('flow-s2'); }
+
+var raf = null;
+function queueDraw(){
+  if(raf) cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(drawAll);
+}
+window.addEventListener('resize', queueDraw);
+if('ResizeObserver' in window){
+  var ro = new ResizeObserver(queueDraw);
+  ['flow-ov','flow-s1','flow-s2'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) ro.observe(el);
+  });
+}
+if(document.fonts && document.fonts.ready){ document.fonts.ready.then(queueDraw); }
+window.addEventListener('load', queueDraw);
+queueDraw();
+
+/* ---------------- quiz mode ---------------- */
+/* each of these is one "card" that flips as a unit — all its text blanks */
+var QUIZ_CARD_SEL = [
+  '#flow-s1 .node[data-node]', '#flow-s1 .stackbox .node',
+  '.stage',
+  '#flow-s2 .node[data-node]', '#flow-s2 .stackbox .node',
+  '.track', '.bsec', '.bkterm',
+  '.bkcard', '.bkstd'
+].join(',');
+
+var quizBtn = document.getElementById('quiz-toggle');
+var quizOn = false;
+var quizHint = null;
+
+function quizCards(){ return document.querySelectorAll(QUIZ_CARD_SEL); }
+
+function enterQuiz(){
+  quizOn = true;
+  document.body.classList.add('quiz');
+  quizBtn.setAttribute('aria-pressed','true');
+  quizCards().forEach(function(el){
+    el.classList.add('qcard');
+    el.classList.remove('revealed');
+  });
+  if(!quizHint){
+    quizHint = document.createElement('div');
+    quizHint.className = 'quizhint';
+    quizHint.textContent = 'Quiz mode — guess each card, then click to reveal';
+    document.body.appendChild(quizHint);
+  }
+  quizHint.classList.add('show');
+  setTimeout(function(){ if(quizHint) quizHint.classList.remove('show'); }, 3200);
+}
+function exitQuiz(){
+  quizOn = false;
+  document.body.classList.remove('quiz');
+  quizBtn.setAttribute('aria-pressed','false');
+  document.querySelectorAll('.qcard').forEach(function(el){
+    el.classList.remove('qcard','revealed');
+  });
+  if(quizHint) quizHint.classList.remove('show');
+}
+quizBtn.addEventListener('click', function(){
+  if(quizOn) exitQuiz(); else enterQuiz();
+});
+
+/* click a blanked card: flip it (reveal its title) without opening its panel.
+   controls that expand a section (loop / broker / weight / tiers) still act. */
+document.addEventListener('click', function(e){
+  if(!quizOn) return;
+  var card = e.target.closest('.qcard');
+  if(!card || card.classList.contains('revealed')) return;
+  card.classList.add('revealed');
+  /* let expand buttons and track/tier selectors still fire; block only the
+     plain reveal so a bare card flip doesn't also open the side panel */
+  var acts = e.target.closest('.expand, .track, .bsec, .bkterm');
+  var isTierOrTrack = card.matches('.track, .bsec, .bkterm') ||
+    ['t1','t2','t3','s2t1','s2t2','s2t3'].indexOf(card.getAttribute('data-node')) >= 0;
+  if(!acts && !isTierOrTrack){
+    e.stopPropagation();
+    e.preventDefault();
+  }
+}, true);
+
+/* when a drawer opens in quiz mode, blank the newly shown cards inside it */
+function retagQuizSoon(){
+  if(!quizOn) return;
+  setTimeout(function(){
+    quizCards().forEach(function(el){
+      if(!el.classList.contains('qcard')) el.classList.add('qcard');
+    });
+  }, 60);
+}
+['loop-toggle','broker-toggle','weight-toggle','after-toggle'].forEach(function(id){
+  var b = document.getElementById(id);
+  if(b) b.addEventListener('click', retagQuizSoon);
+});
+/* disciplines open a detail zone — blank its cards too */
+document.querySelectorAll('.bsec, #bkt3').forEach(function(el){
+  el.addEventListener('click', retagQuizSoon);
+});
+
+/* ---------------- nav highlight ---------------- */
+if('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        document.querySelectorAll('nav a').forEach(function(a){
+          a.classList.toggle('active', a.getAttribute('data-nav') === en.target.id);
+        });
+      }
+    });
+  }, { rootMargin:'-30% 0px -55% 0px' });
+  ['system-1','system-2'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) io.observe(el);
+  });
+}
+</script>
+</body>
+</html>
